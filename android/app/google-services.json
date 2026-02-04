@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "718507937671",
+    "project_id": "scoremanagement-f217d",
+    "storage_bucket": "scoremanagement-f217d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:718507937671:android:ab7e40da6dabd72c5d0d22",
+        "android_client_info": {
+          "package_name": "com.example.score_management"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "718507937671-e19s2nr6hku0cmosrd5cb2ma6nud69dt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAt0_tvG0a2vqZpVkk5rBrMKp4lQMnynPs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "718507937671-e19s2nr6hku0cmosrd5cb2ma6nud69dt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
