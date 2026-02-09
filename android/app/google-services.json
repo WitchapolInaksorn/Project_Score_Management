@@ -14,7 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "718507937671-e19s2nr6hku0cmosrd5cb2ma6nud69dt.apps.googleusercontent.com",
+          "client_id": "718507937671-82712pk1mdppo10aa5motdihjj6ml7t8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.score_management",
+            "certificate_hash": "bb6839e57a9000002b33d7594c1ca218ba03dc43"
+          }
+        },
+        {
+          "client_id": "718507937671-60gdjci53d8khf9fqfb6e39354el848u.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -27,8 +35,15 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "718507937671-e19s2nr6hku0cmosrd5cb2ma6nud69dt.apps.googleusercontent.com",
+              "client_id": "718507937671-60gdjci53d8khf9fqfb6e39354el848u.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "718507937671-9cgr7gh3gjilejr6p3g20ghv8shpum0e.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.scoreManagement"
+              }
             }
           ]
         }
