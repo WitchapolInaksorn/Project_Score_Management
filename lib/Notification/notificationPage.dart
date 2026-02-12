@@ -25,7 +25,7 @@ class _NotificationpageState extends State<Notificationpage> {
       "tagColors": [Color(0xFFF4C430), Color(0xFF49AF6B), Color(0xFFFF6B6B)],
     },
     {
-      "subject": "Computer Programming",
+      "subject": "Computer Programming ",
       "code": "01418113-65",
       "message": "อาจารย์ได้ประกาศคะแนนของคุณเรียบร้อยแล้ว",
       "section": "880",
