@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:score_management/Homepage/searchScorePage.dart';
+import 'package:score_management/Notify/notificationPage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:score_management/Authentication/loginPage.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -15,6 +21,12 @@ class _HomepageState extends State<Homepage> {
   static const light = Color(0xFFF1F3E0);
   static const textDark = Color(0xFF4F5F52);
   static const textSoft = Color(0xFF778873);
+
+  // ================= CONTROLLERS =================
+  final TextEditingController subjectController = TextEditingController();
+  final TextEditingController yearController = TextEditingController();
+  final TextEditingController semesterController = TextEditingController();
+  final TextEditingController sectionController = TextEditingController();
 
   // ================= TEXT STYLE =================
   TextStyle kanit({
@@ -32,21 +44,50 @@ class _HomepageState extends State<Homepage> {
   }
 
   @override
+  void dispose() {
+    subjectController.dispose();
+    yearController.dispose();
+    semesterController.dispose();
+    sectionController.dispose();
+    super.dispose();
+  }
+
+  void _logout() {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.question,
+      animType: AnimType.scale,
+      title: "ออกจากระบบ",
+      desc: "คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ ?",
+      btnCancelText: "ยกเลิก",
+      btnOkText: "ออกจากระบบ",
+      btnCancelOnPress: () {},
+      btnOkOnPress: () async {
+        await FirebaseAuth.instance.signOut();
+        await GoogleSignIn().signOut();
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+          (route) => false,
+        );
+      },
+    ).show();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
         children: [
           _buildHeader(),
-
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Center(child: _buildSearchForm()),
             ),
           ),
-
-          _buildBottomNav(),
         ],
       ),
     );
@@ -63,7 +104,6 @@ class _HomepageState extends State<Homepage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 10),
           _buildGreeting(),
           const SizedBox(height: 15),
           _buildProfileCard(),
@@ -74,7 +114,6 @@ class _HomepageState extends State<Homepage> {
 
   Widget _buildGreeting() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,18 +125,35 @@ class _HomepageState extends State<Homepage> {
                 weight: FontWeight.w400,
                 color: Colors.white,
                 style: FontStyle.italic,
-              ).copyWith(height: 1.0),
+              ),
             ),
-            SizedBox(height: 5),
             Text(
               "ขอให้วันนี้เป็นวันที่ดีนะ 😊",
-              style: kanit(size: 16, weight: FontWeight.w400, color: light),
+              style: kanit(size: 16, color: light),
             ),
           ],
         ),
-        const CircleAvatar(
-          backgroundColor: Color(0xFFD9D9D9),
-          child: Icon(Icons.notifications, color: Color(0xFF383838)),
+
+        const Spacer(),
+
+        Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: const Color(0xFFE7ECD9),
+              child: IconButton(
+                icon: const Icon(Icons.notifications, color: Color(0xFF5F705C)),
+                onPressed: _goToNotification,
+              ),
+            ),
+            const SizedBox(width: 10),
+            CircleAvatar(
+              backgroundColor: const Color(0xFFE7ECD9),
+              child: IconButton(
+                icon: const Icon(Icons.logout, color: Color(0xFF5F705C)),
+                onPressed: _logout,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -123,14 +179,8 @@ class _HomepageState extends State<Homepage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "นาย วิชญ์พล อินทร์อักษร",
-                    style: kanit(weight: FontWeight.w500),
-                  ),
-                  Text(
-                    "รหัสนิสิต : 6530250476",
-                    style: kanit(weight: FontWeight.w500),
-                  ),
+                  Text("นาย วิชญ์พล อินทร์อักษร", style: kanit()),
+                  Text("รหัสนิสิต : 6530250476", style: kanit()),
                 ],
               ),
             ],
@@ -178,22 +228,12 @@ class _HomepageState extends State<Homepage> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "🔎 ค้นหาข้อมูลคะแนน",
-            style: kanit(size: 20, weight: FontWeight.w500, color: textSoft),
-          ),
-          const SizedBox(height: 20),
-          ...[
-            "📚 รหัสรายวิชา / ชื่อรายวิชา",
-            "🗓️ ปีการศึกษา",
-            "🎒 ภาคเรียน",
-            "🎓 หมู่เรียน",
-          ].map(
-            (hint) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildTextField(hint),
-            ),
-          ),
+          Text("🔎 ค้นหาข้อมูลคะแนน", style: kanit(size: 20, color: textSoft)),
+          const SizedBox(height: 10),
+          _buildTextField("📚 รหัสรายวิชา / ชื่อรายวิชา", subjectController),
+          _buildTextField("🗓️ ปีการศึกษา", yearController),
+          _buildTextField("🎒 ภาคเรียน", semesterController),
+          _buildTextField("🎓 หมู่เรียน", sectionController),
           const SizedBox(height: 10),
           _buildActionButtons(),
         ],
@@ -201,20 +241,20 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  Widget _buildTextField(String hint) {
-    return TextField(
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: light,
-        hintText: hint,
-        hintStyle: kanit(color: textSoft),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
+  Widget _buildTextField(String hint, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: light,
+          labelText: hint,
+          labelStyle: kanit(color: textSoft),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
@@ -223,78 +263,61 @@ class _HomepageState extends State<Homepage> {
   Widget _buildActionButtons() {
     return Row(
       children: [
-        Expanded(child: _buildButton("🔍 ค้นหา", const Color(0xFF8FAF8A))),
+        Expanded(
+          child: _buildButton(
+            text: "🔍 ค้นหา",
+            color: const Color(0xFF8FAF8A),
+            onPressed: _onSearchPressed,
+          ),
+        ),
         const SizedBox(width: 15),
-        Expanded(child: _buildButton("🔄 รีเซ็ต", primary)),
+        Expanded(
+          child: _buildButton(
+            text: "🔄 รีเซ็ต",
+            color: primary,
+            onPressed: _onResetPressed,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildButton(String text, Color color) {
+  Widget _buildButton({
+    required String text,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
     return ElevatedButton(
-      onPressed: () {},
+      onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         padding: const EdgeInsets.symmetric(vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      child: Text(text, style: kanit(color: textDark, weight: FontWeight.w600)),
+      child: Text(text, style: kanit(weight: FontWeight.w600)),
     );
   }
 
-  // ================= BOTTOM NAV =================
-  Widget _buildBottomNav() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-      decoration: const BoxDecoration(
-        color: primary,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-      ),
-      child: Row(
-        children: const [
-          Expanded(child: _NavButton(icon: Icons.home, text: "Homepage")),
-          SizedBox(width: 15),
-          Expanded(
-            child: _NavButton(
-              icon: Icons.assignment_outlined,
-              text: "Dashboard",
-            ),
-          ),
-        ],
-      ),
+  void _goToNotification() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const Notificationpage()),
     );
   }
-}
 
-class _NavButton extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _NavButton({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F3E0),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: const Color(0xFF778873), size: 34),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: GoogleFonts.kanit(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF778873),
-            ),
-          ),
-        ],
-      ),
+  void _onSearchPressed() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SearchScorePage()),
     );
+  }
+
+  void _onResetPressed() {
+    subjectController.clear();
+    yearController.clear();
+    semesterController.clear();
+    sectionController.clear();
+
+    setState(() {});
   }
 }

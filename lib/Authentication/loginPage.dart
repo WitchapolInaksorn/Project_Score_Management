@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:score_management/Navigation/mainNavbar.dart';
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -68,7 +70,6 @@ class _LoginPageState extends State<LoginPage> {
 
       final email = user.email ?? "";
 
-      // 🔒 บังคับเฉพาะ @ku.th
       if (!email.endsWith("@ku.th")) {
         await _googleSignIn.signOut();
         await _auth.signOut();
@@ -81,16 +82,11 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      // ✅ Login สำเร็จ
-      _showDialog(
-        title: "เข้าสู่ระบบสำเร็จ 🎉",
-        desc: "ยินดีต้อนรับ $email",
-        type: DialogType.success,
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
       );
-
-      debugPrint("Login success: $email");
     } catch (e) {
-      debugPrint("Google Sign-in Error: $e");
       _showDialog(
         title: "Error",
         desc: "เกิดข้อผิดพลาดในการเข้าสู่ระบบ\n$e",

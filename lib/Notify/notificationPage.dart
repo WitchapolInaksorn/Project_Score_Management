@@ -59,6 +59,14 @@ class _NotificationpageState extends State<Notificationpage> {
     },
   ];
 
+  void _clearAllNotifications() {
+    if (notifications.isEmpty) return;
+
+    setState(() {
+      notifications.clear();
+    });
+  }
+
   // =======================
   // Main Build
   // =======================
@@ -105,7 +113,7 @@ class _NotificationpageState extends State<Notificationpage> {
             ],
           ),
           TextButton(
-            onPressed: () {},
+            onPressed: _clearAllNotifications,
             child: Text(
               "ลบทิ้งหมด",
               style: GoogleFonts.kanit(
@@ -128,12 +136,49 @@ class _NotificationpageState extends State<Notificationpage> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(5),
       decoration: const BoxDecoration(color: Color(0xFFE8EBD0)),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
-        itemCount: notifications.length,
-        itemBuilder: (context, index) {
-          return _buildNotificationCard(notifications[index]);
-        },
+      child:
+          notifications.isEmpty
+              ? _buildEmptyState()
+              : ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
+                itemCount: notifications.length,
+                itemBuilder: (context, index) {
+                  return _buildNotificationCard(notifications[index], index);
+                },
+              ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.notifications_off_rounded,
+            size: 80,
+            color: const Color(0xFF778873),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            "ยังไม่มีการแจ้งเตือนในขณะนี้",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.kanit(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF4A4E49),
+            ),
+          ),
+          Text(
+            "กรุณารอการอัปเดตคะแนนจากระบบ",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.kanit(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF656E62),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -141,7 +186,7 @@ class _NotificationpageState extends State<Notificationpage> {
   // =======================
   // Notification Card
   // =======================
-  Widget _buildNotificationCard(Map<String, dynamic> data) {
+  Widget _buildNotificationCard(Map<String, dynamic> data, int index) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -174,7 +219,7 @@ class _NotificationpageState extends State<Notificationpage> {
               ],
             ),
           ),
-          _buildCloseButton(),
+          _buildCloseButton(index),
         ],
       ),
     );
@@ -272,12 +317,16 @@ class _NotificationpageState extends State<Notificationpage> {
     );
   }
 
-  Widget _buildCloseButton() {
+  Widget _buildCloseButton(int index) {
     return Positioned(
       top: 3,
       right: 9,
       child: GestureDetector(
-        onTap: () {},
+        onTap: () {
+          setState(() {
+            notifications.removeAt(index);
+          });
+        },
         child: Container(
           padding: const EdgeInsets.all(7),
           decoration: const BoxDecoration(
