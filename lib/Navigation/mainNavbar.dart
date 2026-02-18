@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:score_management/Dashboard/dashboardSearch.dart';
-import 'package:score_management/Homepage/homepage.dart';
+import 'package:score_management/Homepage/homepageNisit.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
