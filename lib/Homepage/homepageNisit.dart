@@ -7,14 +7,14 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:score_management/Authentication/loginPage.dart';
 
-class Homepage extends StatefulWidget {
-  const Homepage({super.key});
+class HomepageNisit extends StatefulWidget {
+  const HomepageNisit({super.key});
 
   @override
-  State<Homepage> createState() => _HomepageState();
+  State<HomepageNisit> createState() => _HomepageNisitState();
 }
 
-class _HomepageState extends State<Homepage> {
+class _HomepageNisitState extends State<HomepageNisit> {
   // ================= COLORS =================
   static const primary = Color(0xFFA1BC98);
   static const secondary = Color(0xFFD2DCB6);
