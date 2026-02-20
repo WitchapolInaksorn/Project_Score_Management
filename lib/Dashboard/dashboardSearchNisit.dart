@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:score_management/Dashboard/summaryDashboardPageNisit.dart';
+import 'package:score_management/Dashboard/summaryDashboardNisit.dart';
 import 'package:score_management/Notify/notificationPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:score_management/Authentication/loginPage.dart';
 
-class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+class DashboardSearchNisit extends StatefulWidget {
+  const DashboardSearchNisit({super.key});
 
   @override
-  State<Dashboard> createState() => _DashboardState();
+  State<DashboardSearchNisit> createState() => _DashboardSearchNisitState();
 }
 
-class _DashboardState extends State<Dashboard> {
+class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
   static const primary = Color(0xFFA1BC98);
   static const secondary = Color(0xFFD2DCB6);
   static const light = Color(0xFFF1F3E0);
@@ -343,7 +343,7 @@ class _DashboardState extends State<Dashboard> {
   void _onSearchPressed() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const SummaryDashboardPage()),
+      MaterialPageRoute(builder: (_) => const SummaryDashboardNisit()),
     );
   }
 

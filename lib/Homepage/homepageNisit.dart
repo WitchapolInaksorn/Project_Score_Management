@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:score_management/Homepage/searchScorePageNisit.dart';
+import 'package:score_management/Homepage/searchScoreNisit.dart';
 import 'package:score_management/Notify/notificationPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -308,7 +308,7 @@ class _HomepageNisitState extends State<HomepageNisit> {
   void _onSearchPressed() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const SearchScorePage()),
+      MaterialPageRoute(builder: (_) => const SearchScoreNisit()),
     );
   }
 
