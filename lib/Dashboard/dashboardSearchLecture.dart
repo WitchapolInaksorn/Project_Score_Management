@@ -1,34 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:score_management/Homepage/searchScoreLecture.dart';
+import 'package:score_management/Dashboard/summaryDashboardLecture.dart';
 import 'package:score_management/Notify/notificationPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:score_management/Authentication/loginPage.dart';
 
-class HomepageLecture extends StatefulWidget {
-  const HomepageLecture({super.key});
+class DashboardSearchLecture extends StatefulWidget {
+  const DashboardSearchLecture({super.key});
 
   @override
-  State<HomepageLecture> createState() => _HomepageLectureState();
+  State<DashboardSearchLecture> createState() => _DashboardSearchLectureState();
 }
 
-class _HomepageLectureState extends State<HomepageLecture> {
-  // ================= COLORS =================
+class _DashboardSearchLectureState extends State<DashboardSearchLecture> {
   static const primary = Color(0xFFA1BC98);
   static const secondary = Color(0xFFD2DCB6);
   static const light = Color(0xFFF1F3E0);
   static const textDark = Color(0xFF4F5F52);
   static const textSoft = Color(0xFF778873);
 
-  // ================= CONTROLLERS =================
   final TextEditingController subjectController = TextEditingController();
   final TextEditingController yearController = TextEditingController();
   final TextEditingController semesterController = TextEditingController();
   final TextEditingController sectionController = TextEditingController();
 
-  // ================= TEXT STYLE =================
   TextStyle kanit({
     double size = 16,
     FontWeight weight = FontWeight.w500,
@@ -42,6 +39,8 @@ class _HomepageLectureState extends State<HomepageLecture> {
       fontStyle: style,
     );
   }
+
+  String? selectedScore = "คะแนนทั้งหมด";
 
   @override
   void dispose() {
@@ -93,7 +92,6 @@ class _HomepageLectureState extends State<HomepageLecture> {
     );
   }
 
-  // ================= HEADER =================
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
@@ -192,7 +190,7 @@ class _HomepageLectureState extends State<HomepageLecture> {
 
   Widget _buildSearchForm() {
     return Container(
-      height: 450,
+      height: 500,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: secondary,
@@ -203,13 +201,16 @@ class _HomepageLectureState extends State<HomepageLecture> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("🔎 ค้นหาข้อมูลคะแนน", style: kanit(size: 20, color: textSoft)),
+          Text(
+            "🔎 ค้นหาข้อมูลภาพรวมคะแนน",
+            style: kanit(size: 20, color: textSoft),
+          ),
           const SizedBox(height: 10),
           _buildTextField("📚 รหัสรายวิชา / ชื่อรายวิชา", subjectController),
           _buildTextField("🗓️ ปีการศึกษา", yearController),
           _buildTextField("🎒 ภาคเรียน", semesterController),
           _buildTextField("🎓 หมู่เรียน", sectionController),
-          const SizedBox(height: 10),
+          _buildDropdownScore(),
           _buildActionButtons(),
         ],
       ),
@@ -231,6 +232,41 @@ class _HomepageLectureState extends State<HomepageLecture> {
             borderSide: BorderSide.none,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownScore() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DropdownButtonFormField<String>(
+        value: selectedScore,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: light,
+          labelText: "📊 ประเภทคะแนน",
+          labelStyle: kanit(color: textSoft),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        style: kanit(),
+        dropdownColor: Colors.white,
+        items:
+            ["คะแนนทั้งหมด", "คะแนนเก็บ", "คะแนนกลางภาค", "คะแนนปลายภาค"]
+                .map(
+                  (score) => DropdownMenuItem(
+                    value: score,
+                    child: Text(score, style: kanit()),
+                  ),
+                )
+                .toList(),
+        onChanged: (value) {
+          setState(() {
+            selectedScore = value;
+          });
+        },
       ),
     );
   }
@@ -283,7 +319,7 @@ class _HomepageLectureState extends State<HomepageLecture> {
   void _onSearchPressed() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const SearchScoreLecture()),
+      MaterialPageRoute(builder: (_) => const SummaryDashboardLecture()),
     );
   }
 
@@ -293,6 +329,8 @@ class _HomepageLectureState extends State<HomepageLecture> {
     semesterController.clear();
     sectionController.clear();
 
-    setState(() {});
+    setState(() {
+      selectedScore = "คะแนนทั้งหมด";
+    });
   }
 }
