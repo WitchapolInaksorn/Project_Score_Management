@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:score_management/Dashboard/dashboardSearch.dart';
-import 'package:score_management/Homepage/homepageNisit.dart';
+import 'package:score_management/Dashboard/dashboardSearchLecture.dart';
+import 'package:score_management/Homepage/homepageLecture.dart';
+// import 'package:score_management/Dashboard/dashboardSearchNisit.dart';
+// import 'package:score_management/Homepage/homepageNisit.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -13,7 +15,10 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [Homepage(), Dashboard()];
+  final List<Widget> _pages = const [
+    HomepageLecture(),
+    DashboardSearchLecture(),
+  ];
 
   @override
   Widget build(BuildContext context) {
