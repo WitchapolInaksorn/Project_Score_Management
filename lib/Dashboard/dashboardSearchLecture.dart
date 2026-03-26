@@ -67,17 +67,21 @@ class _DashboardSearchLectureState extends State<DashboardSearchLecture> {
 
     final result = await TeacherService.getTeacherByEmail(currentUser.email!);
 
+    if (!mounted) return;
+
     setState(() {
       teacher = result;
     });
 
-    if (teacher != null) {
+    if (result != null) {
       await loadSubjects();
     }
   }
 
   Future<void> loadSubjects() async {
     final result = await SubjectService.getSubjectByTeacher(teacher!.username!);
+
+    if (!mounted) return;
 
     setState(() {
       subjects = result;
@@ -123,6 +127,8 @@ class _DashboardSearchLectureState extends State<DashboardSearchLecture> {
       btnOkOnPress: () async {
         await FirebaseAuth.instance.signOut();
         await GoogleSignIn().signOut();
+
+        if (!mounted) return;
 
         Navigator.pushAndRemoveUntil(
           context,
@@ -198,7 +204,6 @@ class _DashboardSearchLectureState extends State<DashboardSearchLecture> {
 
         Row(
           children: [
-
             CircleAvatar(
               backgroundColor: const Color(0xFFE7ECD9),
               child: IconButton(
@@ -592,27 +597,27 @@ class _DashboardSearchLectureState extends State<DashboardSearchLecture> {
     );
   }
 
-  void _onSearchPressed() async{
+  void _onSearchPressed() async {
+    if (subjectValue == null ||
+        yearValue == null ||
+        semesterValue == null ||
+        sectionValue == null ||
+        selectedScore == null) {
+      if (!mounted) return;
 
-      if (subjectValue == null ||
-      yearValue == null ||
-      semesterValue == null ||
-      sectionValue == null ||
-      selectedScore == null) {
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.warning,
+        animType: AnimType.scale,
+        title: "ข้อมูลไม่ครบ",
+        desc: "กรุณากรอกข้อมูลให้ครบทุกช่องก่อนทำการค้นหา",
+        btnOkText: "ตกลง",
+        btnOkColor: Colors.orange,
+        btnOkOnPress: () {},
+      ).show();
 
-    AwesomeDialog(
-      context: context,
-      dialogType: DialogType.warning,
-      animType: AnimType.scale,
-      title: "ข้อมูลไม่ครบ",
-      desc: "กรุณากรอกข้อมูลให้ครบทุกช่องก่อนทำการค้นหา",
-      btnOkText: "ตกลง",
-      btnOkColor: Colors.orange,
-      btnOkOnPress: () {},
-    ).show();
-
-    return;
-  }
+      return;
+    }
 
     int? sysSubjectNo = await SubjectService.getSubjectNo(
       subjectId: subjectValue!,
@@ -621,29 +626,37 @@ class _DashboardSearchLectureState extends State<DashboardSearchLecture> {
       section: sectionValue!,
     );
 
-      if (sysSubjectNo == null) {
-    AwesomeDialog(
-      context: context,
-      dialogType: DialogType.error,
-      animType: AnimType.scale,
-      title: "ไม่พบข้อมูล",
-      desc: "ไม่พบข้อมูลสำหรับการแสดง Dashboard\nกรุณาตรวจสอบข้อมูลอีกครั้ง",
-      btnOkText: "ตกลง",
-      btnOkColor: Colors.red,
-      btnOkOnPress: () {},
-    ).show();
+    if (!mounted) return; // 🔥 สำคัญที่สุด
 
-    return;
-  }
+    if (sysSubjectNo == null) {
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        animType: AnimType.scale,
+        title: "ไม่พบข้อมูล",
+        desc: "ไม่พบข้อมูลสำหรับการแสดง Dashboard\nกรุณาตรวจสอบข้อมูลอีกครั้ง",
+        btnOkText: "ตกลง",
+        btnOkColor: Colors.red,
+        btnOkOnPress: () {},
+      ).show();
+
+      return;
+    }
+
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => SummaryDashboardLecture(sysSubjectNo: sysSubjectNo,
+      MaterialPageRoute(
+        builder:
+            (_) => SummaryDashboardLecture(
+              sysSubjectNo: sysSubjectNo,
               subjectId: subjectValue!,
               subjectName: selectedSubjectName!,
               academicYear: yearController.text,
               semester: semesterController.text,
               section: sectionController.text,
-              scoreType: selectedScore!,)),
+              scoreType: selectedScore!,
+            ),
+      ),
     );
   }
 

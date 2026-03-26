@@ -77,13 +77,14 @@ class _HomepageNisitState extends State<HomepageNisit> {
 
     final result = await StudentService.getStudentByEmail(email);
 
+    if (!mounted) return;
+
     setState(() {
       studentInfo = result;
       isLoading = false;
-      loadStudentSubject(studentInfo?.studentId ?? "");
     });
 
-    print("Loaded student info: ${studentInfo?.toJson()}");
+    loadStudentSubject(studentInfo?.studentId ?? "");
   }
 
   Future<void> loadStudentSubject(String studentId) async {
@@ -92,6 +93,8 @@ class _HomepageNisitState extends State<HomepageNisit> {
     });
 
     final result = await StudentService.getSubjectScore(studentId);
+
+    if (!mounted) return; // 🔥 ต้องมีตรงนี้
 
     setState(() {
       Subject = result;
@@ -106,6 +109,8 @@ class _HomepageNisitState extends State<HomepageNisit> {
   }
 
   void _logout() {
+    if (!mounted) return;
+    
     AwesomeDialog(
       context: context,
       dialogType: DialogType.question,
@@ -118,6 +123,8 @@ class _HomepageNisitState extends State<HomepageNisit> {
       btnOkOnPress: () async {
         await FirebaseAuth.instance.signOut();
         await GoogleSignIn().signOut();
+
+        if (!mounted) return; // 🔥 กัน context ตาย
 
         Navigator.pushAndRemoveUntil(
           context,

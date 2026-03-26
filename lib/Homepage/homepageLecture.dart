@@ -75,17 +75,20 @@ class _HomepageLectureState extends State<HomepageLecture> {
   Future<void> loadTeacher() async {
     final result = await TeacherService.getTeacherByEmail(widget.email);
 
+    if (!mounted) return;
     setState(() {
       teacher = result;
     });
 
-    if (teacher != null) {
+    if (result != null) {
       await loadSubjects();
     }
   }
 
   Future<void> loadSubjects() async {
     final result = await SubjectService.getSubjectByTeacher(teacher!.username!);
+
+    if (!mounted) return;
 
     setState(() {
       subjects = result;
@@ -123,6 +126,8 @@ class _HomepageLectureState extends State<HomepageLecture> {
         await FirebaseAuth.instance.signOut();
         await GoogleSignIn().signOut();
 
+        if (!mounted) return;
+
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -131,7 +136,6 @@ class _HomepageLectureState extends State<HomepageLecture> {
       },
     ).show();
   }
-  
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +204,6 @@ class _HomepageLectureState extends State<HomepageLecture> {
 
         Row(
           children: [
-
             CircleAvatar(
               backgroundColor: const Color(0xFFE7ECD9),
               child: IconButton(
@@ -330,7 +333,7 @@ class _HomepageLectureState extends State<HomepageLecture> {
                     .firstWhere((subject) => subject.subjectId == value)
                     .subjectName;
           });
-        }, 
+        },
       ),
     );
   }
@@ -547,6 +550,7 @@ class _HomepageLectureState extends State<HomepageLecture> {
   }
 
   void _goToNotification() {
+    if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const Notificationpage()),
@@ -554,25 +558,24 @@ class _HomepageLectureState extends State<HomepageLecture> {
   }
 
   void _onSearchPressed() async {
-
     if (subjectValue == null ||
-      yearValue == null ||
-      semesterValue == null ||
-      sectionValue == null) {
+        yearValue == null ||
+        semesterValue == null ||
+        sectionValue == null) {
+      if (!mounted) return;
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.warning,
+        animType: AnimType.scale,
+        title: "ข้อมูลไม่ครบ",
+        desc: "กรุณากรอกข้อมูลให้ครบทุกช่องก่อนทำการค้นหา",
+        btnOkText: "ตกลง",
+        btnOkColor: Colors.orange,
+        btnOkOnPress: () {},
+      ).show();
 
-    AwesomeDialog(
-      context: context,
-      dialogType: DialogType.warning,
-      animType: AnimType.scale,
-      title: "ข้อมูลไม่ครบ",
-      desc: "กรุณากรอกข้อมูลให้ครบทุกช่องก่อนทำการค้นหา",
-      btnOkText: "ตกลง",
-      btnOkColor: Colors.orange,
-      btnOkOnPress: () {},
-    ).show();
-
-    return;
-  }
+      return;
+    }
     int? sysSubjectNo = await SubjectService.getSubjectNo(
       subjectId: subjectValue!,
       academicYear: yearValue!.toString(),
@@ -580,21 +583,22 @@ class _HomepageLectureState extends State<HomepageLecture> {
       section: sectionValue!,
     );
 
-  if (sysSubjectNo == null) {
-    AwesomeDialog(
-      context: context,
-      dialogType: DialogType.error,
-      animType: AnimType.scale,
-      title: "ไม่พบข้อมูล",
-      desc: "ไม่พบข้อมูลคะแนนของรายวิชานี้\nกรุณาตรวจสอบข้อมูลอีกครั้ง",
-      btnOkText: "ตกลง",
-      btnOkColor: Colors.red,
-      btnOkOnPress: () {},
-    ).show();
+    if (!mounted) return;
 
-    return;
-  }
+    if (sysSubjectNo == null) {
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        animType: AnimType.scale,
+        title: "ไม่พบข้อมูล",
+        desc: "ไม่พบข้อมูลคะแนนของรายวิชานี้\nกรุณาตรวจสอบข้อมูลอีกครั้ง",
+        btnOkText: "ตกลง",
+        btnOkColor: Colors.red,
+        btnOkOnPress: () {},
+      ).show();
 
+      return;
+    }
 
     Navigator.push(
       context,
@@ -613,18 +617,18 @@ class _HomepageLectureState extends State<HomepageLecture> {
   }
 
   void _onResetPressed() {
-  setState(() {
-    subjectValue = null;        
-    selectedSubjectName = null;
+    setState(() {
+      subjectValue = null;
+      selectedSubjectName = null;
 
-    yearValue = null;           
-    semesterValue = null;
-    sectionValue = null;
+      yearValue = null;
+      semesterValue = null;
+      sectionValue = null;
 
-    subjectController.clear();
-    yearController.clear();
-    semesterController.clear();
-    sectionController.clear();
-  });
-}
+      subjectController.clear();
+      yearController.clear();
+      semesterController.clear();
+      sectionController.clear();
+    });
+  }
 }

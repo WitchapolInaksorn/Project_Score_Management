@@ -76,20 +76,23 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
       currentUser.email ?? "",
     );
 
+    if (!mounted) return;
+
     setState(() {
       studentInfo = result;
-      loadStudentSubject(studentInfo?.studentId ?? "");
     });
 
-    print("Loaded student info: ${studentInfo?.toJson()}");
+    if (studentInfo != null) {
+      await loadStudentSubject(studentInfo!.studentId!);
+    }
   }
 
   Future<void> loadStudentSubject(String studentId) async {
-    setState(() {
-      isLoading = true;
-    });
+    if (!mounted) return;
 
     final result = await StudentService.getSubjectScore(studentId);
+
+    if (!mounted) return;
 
     setState(() {
       Subject = result;
@@ -116,6 +119,8 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
       btnOkOnPress: () async {
         await FirebaseAuth.instance.signOut();
         await GoogleSignIn().signOut();
+
+        if (!mounted) return; // 🔥 MUST HAVE
 
         Navigator.pushAndRemoveUntil(
           context,
@@ -611,7 +616,10 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
   }
 
   void _onSearchPressed() {
+    if (!mounted) return;
+
     if (selectedSubject?.sendStatus == "1") {
+      if (!mounted) return;
       AwesomeDialog(
         context: context,
         dialogType: DialogType.warning,
@@ -622,7 +630,8 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
         btnOkOnPress: () {},
       ).show();
       return;
-    }else if(selectedSubject?.sendStatus == "2") {
+    } else if (selectedSubject?.sendStatus == "2") {
+      if (!mounted) return;
       AwesomeDialog(
         context: context,
         dialogType: DialogType.warning,
@@ -633,23 +642,25 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
         btnOkOnPress: () {},
       ).show();
       return;
+    } else {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (_) => SummaryDashboardNisit(
+                studentId: studentInfo?.studentId,
+                sysSubjectNo: selectedSubject?.sysSubjectNo,
+                subjectId: selectedSubject?.subjectId ?? "",
+                subjectName: selectedSubject?.subjectName ?? "",
+                year: yearController.text,
+                semester: semesterController.text,
+                section: sectionController.text,
+                scoreType: selectedScore!,
+              ),
+        ),
+      );
     }
-    else{
-
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) =>  SummaryDashboardNisit(
-        studentId: studentInfo?.studentId,
-        sysSubjectNo: selectedSubject?.sysSubjectNo,
-        subjectId: selectedSubject?.subjectId ?? "",
-        subjectName: selectedSubject?.subjectName ?? "",
-        year: yearController.text,
-        semester: semesterController.text,
-        section: sectionController.text,
-        scoreType: selectedScore!,
-      )),
-    );}
     // Navigator.push(
     //   context,
     //   MaterialPageRoute(builder: (_) => const SummaryDashboardNisit()),
@@ -666,7 +677,6 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
     semesterValue = null;
     yearValue = null;
     subjectValue = null;
-
 
     setState(() {
       selectedScore = "คะแนนทั้งหมด";

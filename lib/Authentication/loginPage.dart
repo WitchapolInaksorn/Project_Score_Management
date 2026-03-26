@@ -9,7 +9,7 @@ import 'package:score_management/Homepage/homepageLecture.dart';
 import 'package:score_management/apiservice/apiservice.dart';
 import 'package:score_management/apiservice/model/studentinfo.dart';
 import 'dart:ui';
-// import 'package:score_management/signalr_service/signalr_service.dart';
+import 'package:score_management/signalr_service/signalr_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -39,11 +39,10 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _signInWithGoogle() async {
     try {
-      // บังคับเลือกบัญชีใหม่ทุกครั้ง
-      // await _googleSignIn.signOut();
-      // await _auth.signOut();
-
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (!mounted) return;
+
       if (googleUser == null) {
         _showDialog(
           title: "ยกเลิกการเข้าสู่ระบบ",
@@ -56,12 +55,17 @@ class _LoginPageState extends State<LoginPage> {
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
+      if (!mounted) return;
+
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
       final userCredential = await _auth.signInWithCredential(credential);
+
+      if (!mounted) return;
+
       final user = userCredential.user;
 
       if (user == null) {
@@ -74,21 +78,12 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       final email = user.email ?? "";
-      // final signalR = SignalRService();
-      // await signalR.connect(email);
-      // final password = user.hashCode.toString();
-
-      // final student = StudentInfo(
-      //   email: email,
-      //   password: password,
-      //   status: true,
-      // );
-
-      // await StudentService.insertStudent(student);
 
       if (!email.endsWith("@ku.th")) {
         await _googleSignIn.signOut();
         await _auth.signOut();
+
+        if (!mounted) return;
 
         _showDialog(
           title: "อีเมลไม่ถูกต้อง",
@@ -99,34 +94,33 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (await TeacherService.checkEmail(email)) {
+        if (!mounted) return;
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => MainNavigation(email: email)),
         );
         return;
-      } else if (await StudentService.getStudentByEmail(email) != null) {
+      }
+
+      final student = await StudentService.getStudentByEmail(email);
+
+      if (!mounted) return;
+
+      if (student != null) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => MainNavigation(email: email)),
         );
-        return;
-      } else if (await StudentService.getStudentByEmail(email) == null) {
+      } else {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => NisitFormPage()),
         );
-        return;
-      } else {
-        _showDialog(
-          title: "ไม่พบบัญชี",
-          desc: "บัญชีนี้ไม่มีสิทธิ์เข้าถึงแอปของเรา",
-          type: DialogType.error,
-        );
-        await _googleSignIn.signOut();
-        await _auth.signOut();
-        return;
       }
     } catch (e) {
+      if (!mounted) return;
+
       _showDialog(
         title: "Error",
         desc: "เกิดข้อผิดพลาดในการเข้าสู่ระบบ\n$e",
