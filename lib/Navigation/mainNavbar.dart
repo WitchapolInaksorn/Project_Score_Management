@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:score_management/Dashboard/dashboardSearchLecture.dart';
 import 'package:score_management/Homepage/homepageLecture.dart';
-// import 'package:score_management/Dashboard/dashboardSearchNisit.dart';
-// import 'package:score_management/Homepage/homepageNisit.dart';
+import 'package:score_management/Dashboard/dashboardSearchNisit.dart';
+import 'package:score_management/Homepage/homepageNisit.dart';
+import 'package:score_management/apiservice/apiservice.dart';
+import 'package:score_management/apiservice/model/studentinfo.dart';
+import 'package:score_management/apiservice/model/teacher.dart';
 
 class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+  final String email;
+  const MainNavigation({super.key, required this.email});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -14,14 +18,50 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  List<Widget> _pages = [];
 
-  final List<Widget> _pages = const [
-    HomepageLecture(),
-    DashboardSearchLecture(),
-  ];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initUserRole();
+  }
+
+  Future<void> _initUserRole() async {
+    bool isTeacher = await TeacherService.checkEmail(widget.email);
+    final student = await StudentService.getStudentByEmail(widget.email);
+
+    if (isTeacher) {
+      _pages = [
+        HomepageLecture(email: widget.email),
+        const DashboardSearchLecture(),
+      ];
+      _currentIndex = 0;
+    } else if (student != null) {
+      _pages = [
+        HomepageNisit(email: widget.email),
+        const DashboardSearchNisit(),
+      ];
+      _currentIndex = 0;
+    } else {
+      _pages = [const Center(child: Text("ไม่พบข้อมูลผู้ใช้"))];
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: _pages[_currentIndex],
       bottomNavigationBar: Container(

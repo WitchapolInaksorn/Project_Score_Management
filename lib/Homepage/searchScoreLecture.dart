@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:confetti/confetti.dart';
+import 'package:score_management/apiservice/apiservice.dart';
+import 'package:score_management/apiservice/model/student.dart';
+import 'package:score_management/apiservice/model/teacher.dart';
+import 'package:score_management/apiservice/model/subject.dart';
+import 'package:score_management/apiservice/model/subjectScore.dart';
 
 // --- Constants & Styles ---
 const kPrimaryColor = Color(0xFFA1BC98);
@@ -12,7 +17,22 @@ const kTextColor = Color(0xFF4A4E49);
 const kSubTextColor = Color(0xFF667A66);
 
 class SearchScoreLecture extends StatefulWidget {
-  const SearchScoreLecture({super.key});
+  final int? sysSubjectNo;
+  final String subjectId;
+  final String subjectName;
+  final String academicYear;
+  final String semester;
+  final String section;
+
+  const SearchScoreLecture({
+    super.key,
+    required this.sysSubjectNo,
+    required this.subjectId,
+    required this.subjectName,
+    required this.academicYear,
+    required this.semester,
+    required this.section,
+  });
 
   @override
   State<SearchScoreLecture> createState() => _SearchScoreLectureState();
@@ -24,27 +44,22 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController studentIdController = TextEditingController();
 
-  final List<Map<String, String>> studentResults = [
-    {"id": "001", "name": "นาย พัสกร ธีระรุจินันท์", "studentId": "6530250573"},
-    {"id": "002", "name": "นาย วิชญ์พล อินทร์อักษร", "studentId": "6530250476"},
-    {"id": "003", "name": "นาย ธนวัฒน์ ศรีสุวรรณ", "studentId": "6530250488"},
-    {"id": "004", "name": "นาย พิชิตชัย ศรีสุวรรณ", "studentId": "6530250499"},
-    {"id": "005", "name": "นาย ธนภัทร ศรีสุวรรณ", "studentId": "6530250500"},
-    {"id": "006", "name": "นาย ธนวัฒน์ ศรีสุวรรณ", "studentId": "6530250501"},
-    {"id": "007", "name": "นาย พิชิตชัย ศรีสุวรรณ", "studentId": "6530250502"},
-    {"id": "008", "name": "นาย ธนภัทร ศรีสุวรรณ", "studentId": "6530250503"},
-  ];
+  Student? studentInfo;
+
+  List<SubjectScore> scores = [];
+
 
   List<Map<String, String>> filteredResults = [];
+  List<Map<String, String>> studentResults = [];
 
-  // 🔹 Lifecycle (initState / dispose): จัดการทรัพยากรเมื่อ Widget เกิดและดับไป
   @override
   void initState() {
     super.initState();
-    filteredResults = List.from(studentResults);
+    // filteredResults = List.from(studentResults);
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
     );
+    loadScores();
   }
 
   @override
@@ -55,20 +70,48 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
     super.dispose();
   }
 
-  // 🔹 Action / Logic functions: ส่วนคำนวณและการทำงานเบื้องหลัง
+  Future<void> loadScores() async {
+    final result = await StudentService.getScoreBySubjectNo(
+      widget.sysSubjectNo!,
+    );
+
+    setState(() {
+      scores = result;
+    });
+
+    if (scores.isNotEmpty) {
+      final List<Map<String, String>> results = [];
+      for (var score in scores) {
+        studentInfo = await StudentService.getStudentById(
+          score.studentId ?? "",
+        );
+        results.add({
+          "id": (score.seatNo ?? 0).toString().padLeft(3, '0'),
+          "name":
+              "${studentInfo?.firstname ?? ''} ${studentInfo?.lastname ?? ''}",
+          "studentId": score.studentId ?? "",
+        });
+      }
+      setState(() {
+        filteredResults = results;
+      });
+    }
+  }
+
   void _searchStudent() {
     final nameQuery = nameController.text.trim().toLowerCase();
     final idQuery = studentIdController.text.trim().toLowerCase();
 
     setState(() {
+      studentResults = filteredResults;
       filteredResults =
-          studentResults.where((student) {
-            final matchName = student["name"]!.toLowerCase().contains(
-              nameQuery,
-            );
-            final matchId = student["studentId"]!.toLowerCase().contains(
-              idQuery,
-            );
+          filteredResults.where((student) {
+            final name = student["name"]!.toLowerCase();
+            final id = student["studentId"]!.toLowerCase();
+
+            final matchName = nameQuery.isEmpty || name.contains(nameQuery);
+            final matchId = idQuery.isEmpty || id.contains(idQuery);
+
             return matchName && matchId;
           }).toList();
     });
@@ -77,10 +120,9 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
   void _resetSearch() {
     nameController.clear();
     studentIdController.clear();
-    setState(() => filteredResults = List.from(studentResults));
+    setState(() => filteredResults = studentResults);
   }
 
-  // 🔹 Build method: โครงสร้างหลักของหน้าจอ
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -219,7 +261,7 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
         Row(
           children: [
             Text(
-              "📚 Computer Programming",
+              "📚 ${widget.subjectName}",
               style: GoogleFonts.kanit(
                 fontWeight: FontWeight.w500,
                 fontSize: 15,
@@ -234,7 +276,7 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                "01418113-65",
+                "${widget.subjectId}",
                 style: GoogleFonts.kanit(
                   fontSize: 12,
                   color: kTextColor,
@@ -247,7 +289,7 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
         Padding(
           padding: const EdgeInsets.only(left: 26),
           child: Text(
-            "หมู่เรียน 870 | ภาคต้น | ปีการศึกษา 2568",
+            "หมู่เรียน ${widget.section} | ${widget.semester} | ปีการศึกษา ${widget.academicYear}",
             style: GoogleFonts.kanit(
               fontSize: 11,
               color: const Color(0xFF656E62),
@@ -319,17 +361,34 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
 
   // 🔹 Dialog / Bottom Sheet: ส่วนแสดงผลข้อมูลคะแนนแบบ Overlay
   void _showScoreDialog(Map<String, String> student) {
-    final List<Map<String, dynamic>> scores = [
-      {"label": "กลางภาค", "score": 22, "color": const Color(0xFFF4C430)},
-      {"label": "คะแนนเก็บ", "score": 35, "color": const Color(0xFF49AF6B)},
-      {"label": "ปลายภาค", "score": 25, "color": const Color(0xFFFF6B6B)},
-      {"label": "รวม", "score": 82, "color": const Color(0xFF63A2FF)},
+    final studentScore = scores.firstWhere(
+      (s) => s.studentId == student["studentId"],
+    );
+
+    final List<Map<String, dynamic>> showscores = [
+      {
+        "label": "กลางภาค",
+        "score": studentScore.midtermScore ?? 0,
+        "color": const Color(0xFFF4C430),
+      },
+      {
+        "label": "คะแนนเก็บ",
+        "score": studentScore.accumulatedScore ?? 0,
+        "color": const Color(0xFF49AF6B),
+      },
+      {
+        "label": "ปลายภาค",
+        "score": studentScore.finalScore ?? 0,
+        "color": const Color(0xFFFF6B6B),
+      },
+      {
+        "label": "รวม",
+        "score": (studentScore.midtermScore ?? 0) + (studentScore.accumulatedScore ?? 0) + (studentScore.finalScore ?? 0),
+        "color": const Color(0xFF63A2FF),
+      },
     ];
 
-    final totalScore = scores.fold<int>(
-      0,
-      (sum, item) => sum + (item["score"] as int),
-    );
+    final totalScore = (studentScore.midtermScore ?? 0) + (studentScore.accumulatedScore ?? 0) + (studentScore.finalScore ?? 0) ?? 0;
 
     showGeneralDialog(
       context: context,
@@ -344,7 +403,7 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
         );
         return Align(
           alignment: Alignment.bottomCenter,
-          child: _buildSuperSheet(student, scores, totalScore),
+          child: _buildSuperSheet(student, showscores, totalScore.toInt()),
         );
       },
       transitionBuilder:

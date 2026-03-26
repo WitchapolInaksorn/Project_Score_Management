@@ -1,9 +1,33 @@
+import 'dart:ffi';
+
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+import 'package:score_management/apiservice/apiservice.dart';
+import 'package:score_management/apiservice/model/student.dart';
+import 'package:score_management/apiservice/model/subjectScore.dart';
+
 class SummaryDashboardLecture extends StatefulWidget {
-  const SummaryDashboardLecture({super.key});
+  const SummaryDashboardLecture({
+    super.key,
+    required this.sysSubjectNo,
+    required this.subjectId,
+    required this.subjectName,
+    required this.academicYear,
+    required this.semester,
+    required this.section,
+    required this.scoreType,
+  });
+
+  final int? sysSubjectNo;
+  final String subjectId;
+  final String subjectName;
+  final String academicYear;
+  final String semester;
+  final String section;
+  final String scoreType;
 
   @override
   State<SummaryDashboardLecture> createState() =>
@@ -11,6 +35,17 @@ class SummaryDashboardLecture extends StatefulWidget {
 }
 
 class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
+  Student? studentInfo;
+
+  List<SubjectScore> scores = [];
+  double totalScore = 0;
+  double grade_score = 0;
+  double averageScore = 0;
+  double maxScore = 0;
+  double minScore = 0;
+
+  List<Map<String, String>> studentResults = [];
+
   final Color bgColor = const Color(0xFFF5F7EC);
   final Color headerColor = const Color(0xFF8FAE80);
   final Color contentAreaColor = const Color(0xFFE8EBD0);
@@ -18,7 +53,7 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
   final Color textColor = const Color(0xFF4A4E49);
   final Color subTextColor = const Color(0xFF656E62);
 
-  String selectedScoreType = "คะแนนทั้งหมด";
+  String selectedScoreType = "";
 
   final List<String> scoreTypes = [
     "คะแนนทั้งหมด",
@@ -29,8 +64,18 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
 
   int touchedIndex = -1;
 
-  final List<double> scoreData = [10, 8, 7, 6, 5, 4, 3, 2];
-
+  // final List<double> scoreData = [10, 8, 7, 6, 5, 4, 3, 2];
+  final Map<String, double> scoreData = {
+    "A": 0,
+    "B+": 0,
+    "B": 0,
+    "C+": 0,
+    "C": 0,
+    "D+": 0,
+    "D": 0,
+    "F": 0,
+  };
+  final gradeKeys = ["A", "B+", "B", "C+", "C", "D+", "D", "F"];
   final List<String> gradeLabels = [
     "A (80-100)",
     "B+ (75-79)",
@@ -52,6 +97,133 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
     Color(0xFFE53935), // D
     Color(0xFF8E0000), // F
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // filteredResults = List.from(studentResults);
+
+    loadScores();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> loadScores() async {
+    selectedScoreType = widget.scoreType;
+    final result = await StudentService.getScoreBySubjectNo(
+      widget.sysSubjectNo!,
+    );
+
+
+    setState(() {
+      scores = result;
+      _setScore();
+    });
+    
+
+
+    if (scores.isNotEmpty) {
+      final List<Map<String, String>> results = [];
+      for (var score in scores) {
+        studentInfo = await StudentService.getStudentById(
+          score.studentId ?? "",
+        );
+        results.add({
+          "id": (score.seatNo ?? 0).toString().padLeft(3, '0'),
+          "name":
+              "${studentInfo?.firstname ?? ''} ${studentInfo?.lastname ?? ''}",
+          "studentId": score.studentId ?? "",
+        });
+      }
+      setState(() {
+        studentResults = results;
+      });
+    }
+  }
+
+    void _setScore() {
+      
+      final gradeRanges = [
+        (80, 100),
+        (75, 79),
+        (70, 74),
+        (65, 69),
+        (60, 64),
+        (55, 59),
+        (50, 54),
+        (0, 49),
+      ];
+
+      scoreData.updateAll((key, value) => 0);
+
+      if (selectedScoreType == "คะแนนทั้งหมด") {
+        totalScore = scores.fold(0, (sum, score) => sum + (score.accumulatedScore ?? 0) + (score.midtermScore ?? 0) + (score.finalScore ?? 0));
+        averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
+        maxScore = scores.fold(0, (max, score) {
+          final total = (score.accumulatedScore ?? 0) + (score.midtermScore ?? 0) + (score.finalScore ?? 0);
+          return total > max ? total : max;
+        });
+        minScore = scores.fold(double.infinity, (min, score) {
+          final total = (score.accumulatedScore ?? 0) + (score.midtermScore ?? 0) + (score.finalScore ?? 0);
+          return total < min ? total : min;
+        });
+        for (var score in scores) {
+          final total = (score.accumulatedScore ?? 0) + (score.midtermScore ?? 0) + (score.finalScore ?? 0);
+          for (int i = 0; i < gradeRanges.length; i++) {
+            final range = gradeRanges[i];
+            if (total >= range.$1 && total <= range.$2) {
+              scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
+              break;
+            }
+          }
+        }
+      } else if (selectedScoreType == "คะแนนเก็บ") {
+        totalScore = scores.fold(0, (sum, score) => sum + (score.accumulatedScore ?? 0));
+        averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
+        maxScore = scores.fold(0, (max, score) => (score.accumulatedScore ?? 0) > max ? (score.accumulatedScore ?? 0) : max);
+        minScore = scores.fold(double.infinity, (min, score) => (score.accumulatedScore ?? 0) < min ? (score.accumulatedScore ?? 0) : min);
+        for (var score in scores) {
+          final acc = score.accumulatedScore ?? 0;
+          for (int i = 0; i < gradeRanges.length; i++) {
+            if (acc >= gradeRanges[i].$1 && acc <= gradeRanges[i].$2) {
+              scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
+              break;
+            }
+          }
+        }
+      } else if (selectedScoreType == "คะแนนกลางภาค") {
+        totalScore = scores.fold(0, (sum, score) => sum + (score.midtermScore ?? 0));
+        averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
+        maxScore = scores.fold(0, (max, score) => (score.midtermScore ?? 0) > max ? (score.midtermScore ?? 0) : max);
+        minScore = scores.fold(double.infinity, (min, score) => (score.midtermScore ?? 0) < min ? (score.midtermScore ?? 0) : min);
+        for (var score in scores) {
+          final mid = score.midtermScore ?? 0;
+          for (int i = 0; i < gradeRanges.length; i++) {
+            if (mid >= gradeRanges[i].$1 && mid <= gradeRanges[i].$2) {
+              scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
+              break;
+            }
+          }
+        }
+      } else if (selectedScoreType == "คะแนนปลายภาค") {
+        totalScore = scores.fold(0, (sum, score) => sum + (score.finalScore ?? 0));
+        averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
+        maxScore = scores.fold(0, (max, score) => (score.finalScore ?? 0) > max ? (score.finalScore ?? 0) : max);
+        minScore = scores.fold(double.infinity, (min, score) => (score.finalScore ?? 0) < min ? (score.finalScore ?? 0) : min);
+        for (var score in scores) {
+          final fin = score.finalScore ?? 0;
+          for (int i = 0; i < gradeRanges.length; i++) {
+            if (fin >= gradeRanges[i].$1 && fin <= gradeRanges[i].$2) {
+              scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
+              break;
+            }
+          }
+        }
+      }
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +309,7 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
                 child: Row(
                   children: [
                     Text(
-                      "📚 Computer Programming (01418113-65)",
+                      "📚 ${widget.subjectName} (${widget.subjectId})",
                       style: GoogleFonts.kanit(
                         color: textColor,
                         fontSize: 16,
@@ -152,7 +324,7 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
           ),
           const SizedBox(height: 2),
           Text(
-            "หมู่เรียน 870 | ภาคต้น | ปีการศึกษา 2568",
+            "หมู่เรียน ${widget.section} | ${widget.semester} | ปีการศึกษา ${widget.academicYear}",
             style: GoogleFonts.kanit(
               fontSize: 12,
               color: subTextColor,
@@ -199,6 +371,7 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
           onChanged: (value) {
             setState(() {
               selectedScoreType = value!;
+              _setScore();
             });
           },
         ),
@@ -214,7 +387,7 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
             Expanded(
               child: _buildStatCard(
                 "👥 จำนวนนิสิต",
-                "47",
+                "${scores.length}",
                 "จำนวนนิสิตของรายวิชานี้",
               ),
             ),
@@ -222,7 +395,7 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
             Expanded(
               child: _buildStatCard(
                 "📊 คะแนนเฉลี่ย",
-                "71.63",
+                "${averageScore == 0 ? "ไม่มีคะแนน" : averageScore.toStringAsFixed(2)}",
                 "คะแนนเฉลี่ยของรายวิชานี้",
               ),
             ),
@@ -234,7 +407,7 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
             Expanded(
               child: _buildStatCard(
                 "🔼️ คะแนนสูงสุด",
-                "90",
+                "${ maxScore == 0 ? "ไม่มีคะแนน" : maxScore.toStringAsFixed(2)}",
                 "คะแนนสูงสุดของรายวิชานี้",
               ),
             ),
@@ -242,7 +415,7 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
             Expanded(
               child: _buildStatCard(
                 "🔽 คะแนนต่ำสุด",
-                "53",
+                "${minScore == 0 ? "ไม่มีคะแนน" : minScore.toStringAsFixed(2)}",
                 "คะแนนต่ำสุดของรายวิชานี้",
               ),
             ),
@@ -253,7 +426,32 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
   }
 
   Widget _buildPieChartCard() {
-    final total = scoreData.reduce((a, b) => a + b);
+    // รวมทั้งหมด
+    final total = scoreData.values.fold(0.0, (a, b) => a + b);
+
+    // กันกรณีไม่มีข้อมูล
+    if (total == 0) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Center(
+          child: Text(
+            "ไม่มีข้อมูล",
+            style: GoogleFonts.kanit(fontSize: 16, color: textColor),
+          ),
+        ),
+      );
+    }
+
+    // filter index ที่มีค่า > 0
+    final visibleIndexes =
+        List.generate(
+          gradeKeys.length,
+          (i) => i,
+        ).where((i) => (scoreData[gradeKeys[i]] ?? 0) > 0).toList();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -273,6 +471,7 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
             ),
           ),
           const SizedBox(height: 20),
+
           SizedBox(
             height: 230,
             child: Stack(
@@ -296,11 +495,13 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
                         });
                       },
                     ),
-                    sections: List.generate(scoreData.length, (index) {
-                      final isTouched = index == touchedIndex;
+
+                    sections: List.generate(visibleIndexes.length, (i) {
+                      final index = visibleIndexes[i];
+                      final isTouched = i == touchedIndex;
 
                       return PieChartSectionData(
-                        value: scoreData[index],
+                        value: scoreData[gradeKeys[index]] ?? 0,
                         color: gradeColors[index],
                         radius: isTouched ? 75 : 65,
                         showTitle: false,
@@ -309,43 +510,52 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
                   ),
                 ),
 
-                if (touchedIndex != -1)
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        gradeLabels[touchedIndex],
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.kanit(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "${((scoreData[touchedIndex] / total) * 100).toStringAsFixed(1)}%",
-                        style: GoogleFonts.kanit(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                      ),
-                      Text(
-                        "${scoreData[touchedIndex].toInt()} คน",
-                        style: GoogleFonts.kanit(
-                          fontSize: 13,
-                          color: subTextColor,
-                        ),
-                      ),
-                    ],
+                // ===== center text =====
+                if (touchedIndex != -1 && touchedIndex < visibleIndexes.length)
+                  Builder(
+                    builder: (_) {
+                      final realIndex = visibleIndexes[touchedIndex];
+                      final value = scoreData[gradeKeys[realIndex]] ?? 0;
+
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            gradeLabels[realIndex],
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.kanit(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "${((value / total) * 100).toStringAsFixed(1)}%",
+                            style: GoogleFonts.kanit(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                          ),
+                          Text(
+                            "${value.toInt()} คน",
+                            style: GoogleFonts.kanit(
+                              fontSize: 13,
+                              color: subTextColor,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
               ],
             ),
           ),
+
           const SizedBox(height: 16),
 
-          // Legend
+          // ===== Legend (แสดงเฉพาะที่มีข้อมูล) =====
           Wrap(
             spacing: 12,
             runSpacing: 8,
@@ -405,14 +615,14 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
             ),
           ),
           const SizedBox(height: 15),
-          Text(
-            value,
-            style: GoogleFonts.kanit(
-              fontSize: 34,
-              fontWeight: FontWeight.w500,
-              color: textColor,
-            ),
+        Text(
+          value,
+          style: GoogleFonts.kanit(
+            fontSize: value == "ไม่มีคะแนน" ? 20 : 34,
+            fontWeight: FontWeight.w500,
+            color: textColor,
           ),
+        ),
           const SizedBox(height: 15),
           Text(
             sub,

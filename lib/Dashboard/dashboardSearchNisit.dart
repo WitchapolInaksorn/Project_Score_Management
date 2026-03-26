@@ -6,6 +6,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:score_management/Authentication/loginPage.dart';
+import 'package:dropdown_search/dropdown_search.dart';
+
+import 'package:score_management/apiservice/apiservice.dart';
+import 'package:score_management/apiservice/model/subject.dart';
+import 'package:score_management/apiservice/model/studentinfo.dart';
+import 'package:score_management/apiservice/model/studentsubjectscore.dart';
 
 class DashboardSearchNisit extends StatefulWidget {
   const DashboardSearchNisit({super.key});
@@ -20,6 +26,17 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
   static const light = Color(0xFFF1F3E0);
   static const textDark = Color(0xFF4F5F52);
   static const textSoft = Color(0xFF778873);
+
+  StudentInfo? studentInfo;
+  List<StudentSubjectScore>? Subject;
+  StudentSubjectScore? selectedSubject;
+  bool isLoading = false;
+
+  int? yearValue;
+  String? semesterValue;
+  String? sectionValue;
+  String? subjectValue;
+  String? selectedSubjectName;
 
   final TextEditingController subjectController = TextEditingController();
   final TextEditingController yearController = TextEditingController();
@@ -51,6 +68,41 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
     super.dispose();
   }
 
+  Future<void> loadStudent() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    final result = await StudentService.getStudentByEmail(
+      currentUser.email ?? "",
+    );
+
+    setState(() {
+      studentInfo = result;
+      loadStudentSubject(studentInfo?.studentId ?? "");
+    });
+
+    print("Loaded student info: ${studentInfo?.toJson()}");
+  }
+
+  Future<void> loadStudentSubject(String studentId) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final result = await StudentService.getSubjectScore(studentId);
+
+    setState(() {
+      Subject = result;
+      isLoading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadStudent();
+  }
+
   void _logout() {
     AwesomeDialog(
       context: context,
@@ -76,6 +128,9 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
 
   @override
   Widget build(BuildContext context) {
+    if (studentInfo == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
@@ -177,8 +232,11 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("นาย วิชญ์พล อินทร์อักษร", style: kanit()),
-                  Text("รหัสนิสิต : 6530250476", style: kanit()),
+                  Text(
+                    "${studentInfo?.prefix} ${studentInfo?.firstname} ${studentInfo?.lastname}",
+                    style: kanit(),
+                  ),
+                  Text("รหัสนิสิต : ${studentInfo?.studentId}", style: kanit()),
                 ],
               ),
             ],
@@ -186,9 +244,13 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
           const SizedBox(height: 15),
           Row(
             children: [
-              Expanded(child: _buildInfoCard("📖 สาขา", "S06")),
+              Expanded(
+                child: _buildInfoCard("📖 สาขา", "${studentInfo?.majorId}"),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _buildInfoCard("✉️ อีเมล", "witphon.i@ku.th")),
+              Expanded(
+                child: _buildInfoCard("✉️ อีเมล", "${studentInfo?.email}"),
+              ),
             ],
           ),
         ],
@@ -198,7 +260,7 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
 
   Widget _buildInfoCard(String label, String value) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: primary,
         borderRadius: BorderRadius.circular(15),
@@ -209,6 +271,214 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
           Text(label, style: kanit(color: textDark)),
           Text(value, style: kanit(color: textDark)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildYearDropdown() {
+    final years = {1: "2564", 2: "2565", 3: "2566", 4: "2567", 5: "2568"};
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DropdownButtonFormField<int>(
+        value: yearValue,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: light,
+          labelText: "🗓️ ปีการศึกษา",
+          labelStyle: kanit(color: textSoft),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        items:
+            years.entries.map((entry) {
+              return DropdownMenuItem<int>(
+                value: entry.key,
+                child: Text(entry.value, style: kanit(color: textSoft)),
+              );
+            }).toList(),
+        onChanged: (value) {
+          setState(() {
+            yearValue = value;
+            yearController.text = years[value] ?? "";
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildSubjectDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DropdownSearch<StudentSubjectScore>(
+        selectedItem: selectedSubject,
+
+        // ✅ ใช้ object ทั้งก้อน (ไม่ต้อง map เป็น String)
+        items: Subject?.where((s) => s.activeStatus == "active").toList() ?? [],
+
+        dropdownDecoratorProps: DropDownDecoratorProps(
+          dropdownSearchDecoration: InputDecoration(
+            filled: true,
+            fillColor: light,
+            labelText: "📚 รหัสรายวิชา / ชื่อรายวิชา",
+            labelStyle: kanit(color: textSoft),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+
+        popupProps: PopupProps.menu(
+          showSearchBox: true,
+          searchFieldProps: TextFieldProps(
+            decoration: const InputDecoration(hintText: "ค้นหารายวิชา..."),
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.done,
+            enableSuggestions: false,
+            autocorrect: false,
+          ),
+        ),
+
+        // ✅ แสดงผลใน dropdown
+        itemAsString: (s) => "${s.subjectId} ${s.subjectName}",
+
+        // ✅ เวลาเลือก
+        onChanged: (value) {
+          setState(() {
+            selectedSubject = value;
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildSemesterDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DropdownButtonFormField<String>(
+        value: semesterValue,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: light,
+          labelText: "🎒 ภาคเรียน",
+          labelStyle: kanit(color: textSoft),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        items: [
+          DropdownMenuItem(
+            value: "1",
+            child: Text("ภาคต้น", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "2",
+            child: Text("ภาคปลาย", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "3",
+            child: Text("ภาคฤดูร้อน", style: kanit(color: textSoft)),
+          ),
+        ],
+        onChanged: (value) {
+          setState(() {
+            semesterValue = value;
+            semesterController.text = switch (value) {
+              "1" => "ภาคต้น",
+              "2" => "ภาคปลาย",
+              "3" => "ภาคฤดูร้อน",
+              _ => "",
+            };
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildSectionDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DropdownButtonFormField<String>(
+        value: sectionValue,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: light,
+          labelText: "🎓 หมู่เรียน",
+          labelStyle: kanit(color: textSoft),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        items: [
+          DropdownMenuItem(
+            value: "1",
+            child: Text("800", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "2",
+            child: Text("801", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "3",
+            child: Text("802", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "4",
+            child: Text("803", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "5",
+            child: Text("830", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "6",
+            child: Text("831", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "7",
+            child: Text("850", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "8",
+            child: Text("851", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "9",
+            child: Text("870", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "10",
+            child: Text("880", style: kanit(color: textSoft)),
+          ),
+          DropdownMenuItem(
+            value: "11",
+            child: Text("881", style: kanit(color: textSoft)),
+          ),
+        ],
+        onChanged: (value) {
+          setState(() {
+            sectionValue = value;
+            final sectionMap = {
+              "1": "800",
+              "2": "801",
+              "3": "802",
+              "4": "803",
+              "5": "830",
+              "6": "831",
+              "7": "850",
+              "8": "851",
+              "9": "870",
+              "10": "880",
+              "11": "881",
+            };
+            sectionController.text = sectionMap[value] ?? "";
+          });
+        },
       ),
     );
   }
@@ -230,10 +500,10 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
             style: kanit(size: 20, color: textSoft),
           ),
           const SizedBox(height: 10),
-          _buildTextField("📚 รหัสรายวิชา / ชื่อรายวิชา", subjectController),
-          _buildTextField("🗓️ ปีการศึกษา", yearController),
-          _buildTextField("🎒 ภาคเรียน", semesterController),
-          _buildTextField("🎓 หมู่เรียน", sectionController),
+          _buildSubjectDropdown(),
+          _buildYearDropdown(),
+          _buildSemesterDropdown(),
+          _buildSectionDropdown(),
           _buildDropdownScore(),
           _buildActionButtons(),
         ],
@@ -341,10 +611,49 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
   }
 
   void _onSearchPressed() {
+    if (selectedSubject?.sendStatus == "1") {
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.warning,
+        animType: AnimType.scale,
+        title: "ไม่สามารถค้นหาได้",
+        desc: "คะแนนของรายวิชานี้ยังไม่ถูกส่งโดยอาจารย์ผู้สอน",
+        btnOkText: "ตกลง",
+        btnOkOnPress: () {},
+      ).show();
+      return;
+    }else if(selectedSubject?.sendStatus == "2") {
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.warning,
+        animType: AnimType.scale,
+        title: "ไม่สามารถค้นหาได้",
+        desc: "คะแนนของรายวิชานี้ยังไม่ถูกส่งโดยอาจารย์ผู้สอน",
+        btnOkText: "ตกลง",
+        btnOkOnPress: () {},
+      ).show();
+      return;
+    }
+    else{
+
+
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const SummaryDashboardNisit()),
-    );
+      MaterialPageRoute(builder: (_) =>  SummaryDashboardNisit(
+        studentId: studentInfo?.studentId,
+        sysSubjectNo: selectedSubject?.sysSubjectNo,
+        subjectId: selectedSubject?.subjectId ?? "",
+        subjectName: selectedSubject?.subjectName ?? "",
+        year: yearController.text,
+        semester: semesterController.text,
+        section: sectionController.text,
+        scoreType: selectedScore!,
+      )),
+    );}
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(builder: (_) => const SummaryDashboardNisit()),
+    // );
   }
 
   void _onResetPressed() {
@@ -352,6 +661,12 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
     yearController.clear();
     semesterController.clear();
     sectionController.clear();
+    selectedSubject = null;
+    sectionValue = null;
+    semesterValue = null;
+    yearValue = null;
+    subjectValue = null;
+
 
     setState(() {
       selectedScore = "คะแนนทั้งหมด";

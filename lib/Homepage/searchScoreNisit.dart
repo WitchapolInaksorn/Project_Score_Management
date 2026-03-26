@@ -1,8 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:score_management/apiservice/apiservice.dart';
+import 'package:score_management/apiservice/model/SubjectScoreRequest.dart';
 
 class SearchScoreNisit extends StatefulWidget {
-  const SearchScoreNisit({super.key});
+  final String? studentId;
+  final int? sysSubjectNo;
+  final String? subjectId;
+  final String? subjectName;
+  final String? year;
+  final String? semester;
+  final String? section;
+
+  const SearchScoreNisit({
+    super.key,
+    required this.studentId,
+    required this.sysSubjectNo,
+    required this.subjectId,
+    required this.subjectName,
+    required this.year,
+    required this.semester,
+    required this.section,
+  });
 
   @override
   State<SearchScoreNisit> createState() => _SearchScoreNisitState();
@@ -11,19 +31,66 @@ class SearchScoreNisit extends StatefulWidget {
 class _SearchScoreNisitState extends State<SearchScoreNisit> {
   final List<Map<String, dynamic>> searchResults = [
     {
-      "subject": "Computer Programming",
-      "code": "01418113-65",
-      "students": "870",
-      "semester": "ภาคต้น",
-      "year": "2568",
+      "subject": "",
+      "code": "",
+      "semester": "",
+      "year": "",
+      "section": "",
       "scores": [
-        {"label": "กลางภาค", "score": "22", "color": const Color(0xFFF4C430)},
-        {"label": "คะแนนเก็บ", "score": "35", "color": const Color(0xFF49AF6B)},
-        {"label": "ปลายภาค", "score": "25", "color": const Color(0xFFFF6B6B)},
-        {"label": "รวม", "score": "82", "color": const Color(0xFF63A2FF)},
+        {"label": "กลางภาค", "score": "0", "color": const Color(0xFFF4C430)},
+        {"label": "คะแนนเก็บ", "score": "0", "color": const Color(0xFF49AF6B)},
+        {"label": "ปลายภาค", "score": "0", "color": const Color(0xFFFF6B6B)},
+        {"label": "รวม", "score": "0", "color": const Color(0xFF63A2FF)},
       ],
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchScoreData();
+    loadscore();
+  }
+
+  void _fetchScoreData() {
+    setState(() {
+      searchResults[0]['subject'] = widget.subjectName ?? "ไม่พบข้อมูล";
+      searchResults[0]['code'] = widget.subjectId ?? "ไม่พบข้อมูล";
+      searchResults[0]['semester'] = widget.semester ?? "ไม่พบข้อมูล";
+      searchResults[0]['year'] = widget.year ?? "ไม่พบข้อมูล";
+      searchResults[0]['section'] = widget.section ?? "ไม่พบข้อมูล";
+    });
+  }
+
+  Future<void> loadscore() async {
+    final result = await StudentService.getStudentScore(
+      SubjectScoreRequest(
+        sysSubjectNo: widget.sysSubjectNo ?? 0,
+        studentId: widget.studentId ?? "",
+      ),
+    );
+
+    if (result.isEmpty) return;
+
+    final score = result.first; // ✅ เอาตัวแรก
+
+    setState(() {
+      searchResults[0]['scores'][0]['score'] =
+          score.midtermScore?.toString() ?? "0";
+      searchResults[0]['scores'][1]['score'] =
+          score.accumulatedScore?.toString() ?? "0";
+      searchResults[0]['scores'][2]['score'] =
+          score.finalScore?.toString() ?? "0";
+
+      // ถ้าไม่มี totalScore ใน model → คำนวณเอง
+      final total =
+          (score.midtermScore ?? 0) +
+          (score.accumulatedScore ?? 0) +
+          (score.finalScore ?? 0);
+
+      searchResults[0]['scores'][3]['score'] = total.toString();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -143,7 +210,7 @@ class _SearchScoreNisitState extends State<SearchScoreNisit> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "หมู่เรียน ${data['students']} | ${data['semester']} | ปีการศึกษา ${data['year']}",
+                      "หมู่เรียน ${data['section']} | ${data['semester']} | ปีการศึกษา ${data['year']}",
                       style: GoogleFonts.kanit(
                         fontSize: 12,
                         color: const Color(0xFF656E62),

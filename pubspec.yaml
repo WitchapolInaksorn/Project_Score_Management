@@ -40,13 +40,15 @@ dependencies:
   google_sign_in: ^6.2.1
   google_fonts: ^6.3.2
   awesome_dialog: ^3.3.0
-  http: ^1.6.0
+  http: ^0.13.5
   fl_chart: ^0.68.0
   confetti: ^0.8.0
+  signalr_core: 1.1.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  dropdown_search: ^5.0.6
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

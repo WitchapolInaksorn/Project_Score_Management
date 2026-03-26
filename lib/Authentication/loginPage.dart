@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:score_management/Authentication/nisitFormPage.dart';
 import 'package:score_management/Navigation/mainNavbar.dart';
-
+import 'package:score_management/Homepage/homepageLecture.dart';
+import 'package:score_management/apiservice/apiservice.dart';
+import 'package:score_management/apiservice/model/studentinfo.dart';
+import 'dart:ui';
+// import 'package:score_management/signalr_service/signalr_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -35,8 +40,8 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInWithGoogle() async {
     try {
       // บังคับเลือกบัญชีใหม่ทุกครั้ง
-      await _googleSignIn.signOut();
-      await _auth.signOut();
+      // await _googleSignIn.signOut();
+      // await _auth.signOut();
 
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
@@ -69,6 +74,17 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       final email = user.email ?? "";
+      // final signalR = SignalRService();
+      // await signalR.connect(email);
+      // final password = user.hashCode.toString();
+
+      // final student = StudentInfo(
+      //   email: email,
+      //   password: password,
+      //   status: true,
+      // );
+
+      // await StudentService.insertStudent(student);
 
       if (!email.endsWith("@ku.th")) {
         await _googleSignIn.signOut();
@@ -82,10 +98,34 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const MainNavigation()),
-      );
+      if (await TeacherService.checkEmail(email)) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => MainNavigation(email: email)),
+        );
+        return;
+      } else if (await StudentService.getStudentByEmail(email) != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => MainNavigation(email: email)),
+        );
+        return;
+      } else if (await StudentService.getStudentByEmail(email) == null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => NisitFormPage()),
+        );
+        return;
+      } else {
+        _showDialog(
+          title: "ไม่พบบัญชี",
+          desc: "บัญชีนี้ไม่มีสิทธิ์เข้าถึงแอปของเรา",
+          type: DialogType.error,
+        );
+        await _googleSignIn.signOut();
+        await _auth.signOut();
+        return;
+      }
     } catch (e) {
       _showDialog(
         title: "Error",
@@ -100,25 +140,42 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: Container(
         width: double.infinity,
-        color: const Color(0xFFD2DCB6),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFD2DCB6), Color(0xFFA1BC98), Color(0xFF8AAE92)],
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const SizedBox(height: 110),
+          children: [
+            const SizedBox(height: 80),
+
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    "📚 Score Management",
-                    style: GoogleFonts.kanit(
-                      color: const Color(0xFF4A4E49),
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+                children: [
+                  Row(
+                    children: [
+                      Image.asset("assets/images/logo.png", height: 34),
+
+                      const SizedBox(width: 10),
+
+                      Text(
+                        "Score Management",
+                        style: GoogleFonts.kanit(
+                          color: const Color(0xFF4A4E49),
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
+
+                  const SizedBox(height: 25),
+
                   Text(
                     "เริ่มต้นใช้งานได้ทันที",
                     style: GoogleFonts.kanit(
@@ -127,77 +184,56 @@ class _LoginPageState extends State<LoginPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 5),
+
                   Text(
-                    "เข้าสู่ระบบเพื่อสำรวจและใช้งานแอปของเรา",
+                    "เข้าสู่ระบบเพื่อใช้งานแอปของเรา (ใช้บัญชี @ku.th เท่านั้น)",
                     style: GoogleFonts.kanit(
                       color: const Color(0xFF4A4E49),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
+
             Expanded(
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFFA1BC98),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(30),
+                padding: const EdgeInsets.all(30),
+                child: SingleChildScrollView(
                   child: Column(
-                    children: <Widget>[
-                      Center(
-                        child: Container(
-                          width: 200,
-                          height: 200,
-                          margin: const EdgeInsets.only(top: 30, bottom: 10),
-                          padding: const EdgeInsets.all(10),
-                          decoration: const BoxDecoration(
-                            color: Color.fromARGB(255, 231, 228, 207),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Image.asset('assets/images/user.png'),
-                        ),
-                      ),
+                    children: [
+                      _glassAvatar(),
+
+                      const SizedBox(height: 45),
+
+                      _googleButton(),
+
                       const SizedBox(height: 30),
 
-                      /// 🔥 ปุ่ม Login with Google
-                      GestureDetector(
-                        onTap: _signInWithGoogle,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 231, 228, 207),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.all(14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                "Log In with Google",
-                                style: TextStyle(
-                                  color: Color.fromARGB(255, 53, 52, 52),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Image.asset(
-                                'assets/images/google.png',
-                                height: 24,
-                              ),
-                            ],
-                          ),
-                        ),
+                      _featureCard(
+                        "assets/images/score_management.png",
+                        "Manage Scores",
+                        "ดูคะแนนรายวิชาได้ง่าย",
                       ),
+
+                      const SizedBox(height: 12),
+
+                      _featureCard(
+                        "assets/images/tracking.png",
+                        "Track Courses",
+                        "ติดตามผลการเรียนของคุณ",
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      _featureCard(
+                        "assets/images/update_instant.png",
+                        "Instant Updates",
+                        "รับแจ้งเตือนจากอาจารย์",
+                      ),
+
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
@@ -205,6 +241,132 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _glassAvatar() {
+    return Container(
+      width: 190,
+      height: 190,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.45),
+            Colors.white.withOpacity(0.15),
+          ],
+        ),
+        border: Border.all(color: Colors.white.withOpacity(0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Image.asset(
+        "assets/images/user.png",
+        filterQuality: FilterQuality.low,
+      ),
+    );
+  }
+
+  Widget _googleButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _signInWithGoogle,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 3,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset("assets/images/google.png", height: 22),
+            const SizedBox(width: 10),
+            Text(
+              "Continue with Google",
+              style: GoogleFonts.kanit(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _featureCard(String imagePath, String title, String subtitle) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.35),
+            Colors.white.withOpacity(0.12),
+          ],
+        ),
+        border: Border.all(color: Colors.white.withOpacity(0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 45,
+            height: 45,
+            padding: const EdgeInsets.all(6),
+            child: Image.asset(
+              imagePath,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.low,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.kanit(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF4A4E49),
+                ),
+              ),
+              Text(
+                subtitle,
+                style: GoogleFonts.kanit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF4A4E49),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -1,8 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:score_management/apiservice/apiservice.dart';
+import 'package:score_management/apiservice/model/SubjectScoreRequest.dart';
+import 'package:score_management/apiservice/model/subjectScore.dart';
+import 'package:score_management/apiservice/model/student.dart';
+
 class SummaryDashboardNisit extends StatefulWidget {
-  const SummaryDashboardNisit({super.key});
+  final String? studentId;
+  final int? sysSubjectNo;
+  final String? subjectId;
+  final String? subjectName;
+  final String? year;
+  final String? semester;
+  final String? section;
+  final String scoreType;
+
+  const SummaryDashboardNisit({
+    super.key,
+    required this.studentId,
+    required this.sysSubjectNo,
+    required this.subjectId,
+    required this.subjectName,
+    required this.year,
+    required this.semester,
+    required this.section,
+    required this.scoreType,
+  });
 
   @override
   State<SummaryDashboardNisit> createState() => _SummaryDashboardNisitState();
@@ -16,7 +40,36 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
   final Color textColor = const Color(0xFF4A4E49);
   final Color subTextColor = const Color(0xFF656E62);
 
-  String selectedScoreType = "คะแนนทั้งหมด";
+  final List<Map<String, dynamic>> searchResults = [
+    {
+      "subject": "",
+      "code": "",
+      "semester": "",
+      "year": "",
+      "section": "",
+      "scores": [
+        {"label": "กลางภาค", "score": "0", "color": const Color(0xFFF4C430)},
+        {"label": "คะแนนเก็บ", "score": "0", "color": const Color(0xFF49AF6B)},
+        {"label": "ปลายภาค", "score": "0", "color": const Color(0xFFFF6B6B)},
+        {"label": "รวม", "score": "0", "color": const Color(0xFF63A2FF)},
+      ],
+    },
+  ];
+
+  Student? studentInfo;
+
+  List<SubjectScore> scores = [];
+  double totalScore = 0;
+  double grade_score = 0;
+  double averageScore = 0;
+  double maxScore = 0;
+  double minScore = 0;
+  double selfTotalScore = 0;
+  int rank = 0;
+
+  List<Map<String, String>> studentResults = [];
+
+  String selectedScoreType = "";
 
   final List<String> scoreTypes = [
     "คะแนนทั้งหมด",
@@ -24,6 +77,137 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
     "คะแนนกลางภาค",
     "คะแนนปลายภาค",
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // filteredResults = List.from(studentResults);
+
+    loadScores();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> loadStudentScore() async {
+    final result = await StudentService.getStudentScore(
+      SubjectScoreRequest(
+        sysSubjectNo: widget.sysSubjectNo ?? 0,
+        studentId: widget.studentId ?? "",
+      ),
+    );
+
+    if (result.isEmpty) return;
+
+    final score = result.first; // ✅ เอาตัวแรก
+
+    setState(() {
+      searchResults[0]['scores'][0]['score'] =
+          score.midtermScore?.toString() ?? "0";
+      searchResults[0]['scores'][1]['score'] =
+          score.accumulatedScore?.toString() ?? "0";
+      searchResults[0]['scores'][2]['score'] =
+          score.finalScore?.toString() ?? "0";
+
+      // ถ้าไม่มี totalScore ใน model → คำนวณเอง
+      selfTotalScore =
+          (score.midtermScore ?? 0) +
+          (score.accumulatedScore ?? 0) +
+          (score.finalScore ?? 0);
+
+      searchResults[0]['scores'][3]['score'] = selfTotalScore.toString();
+    });
+  }
+
+  Future<void> loadScores() async {
+    selectedScoreType = widget.scoreType;
+    final result = await StudentService.getScoreBySubjectNo(
+      widget.sysSubjectNo!,
+    );
+
+    setState(() {
+      scores = result;
+      _setScore();
+    });
+
+    if (scores.isNotEmpty) {
+      final List<Map<String, String>> results = [];
+      for (var score in scores) {
+        studentInfo = await StudentService.getStudentById(
+          score.studentId ?? "",
+        );
+        results.add({
+          "id": (score.seatNo ?? 0).toString().padLeft(3, '0'),
+          "name":
+              "${studentInfo?.firstname ?? ''} ${studentInfo?.lastname ?? ''}",
+          "studentId": score.studentId ?? "",
+        });
+      }
+      setState(() {
+        studentResults = results;
+      });
+    }
+  }
+
+  void _setScore() {
+  if (scores.isEmpty) {
+    totalScore = 0;
+    averageScore = 0;
+    maxScore = 0;
+    minScore = 0;
+    rank = 0;
+    return;
+  }
+
+  // 🔥 function กลาง
+  double getScore(SubjectScore s) {
+    switch (selectedScoreType) {
+      case "คะแนนทั้งหมด":
+        return (s.accumulatedScore ?? 0) +
+               (s.midtermScore ?? 0) +
+               (s.finalScore ?? 0);
+      case "คะแนนเก็บ":
+        return s.accumulatedScore ?? 0;
+      case "คะแนนกลางภาค":
+        return s.midtermScore ?? 0;
+      case "คะแนนปลายภาค":
+        return s.finalScore ?? 0;
+      default:
+        return 0;
+    }
+  }
+
+  // 🔹 total + avg
+  totalScore = scores.fold(0, (sum, s) => sum + getScore(s));
+  averageScore = totalScore / scores.length;
+
+  // 🔹 max
+  maxScore = scores
+      .map((s) => getScore(s))
+      .reduce((a, b) => a > b ? a : b);
+
+  // 🔹 min
+  minScore = scores
+      .map((s) => getScore(s))
+      .reduce((a, b) => a < b ? a : b);
+
+  // 🔥 SORT เพื่อหา rank
+  final sorted = [...scores];
+  sorted.sort((a, b) => getScore(b).compareTo(getScore(a)));
+
+  // 🔹 หาคะแนนของตัวเอง
+  final myScoreObj = sorted.firstWhere(
+    (s) => s.studentId == widget.studentId,
+  );
+
+  final myScore = getScore(myScoreObj);
+
+  // 🔹 หา rank
+  rank = sorted.indexWhere((s) => getScore(s) == myScore) + 1;
+  selfTotalScore = myScore;
+}
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +293,7 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
                 child: Row(
                   children: [
                     Text(
-                      "📚 Computer Programming (01418113-65)",
+                      "📚 ${widget.subjectName ?? ""} (${widget.subjectId ?? ""})",
                       style: GoogleFonts.kanit(
                         color: textColor,
                         fontSize: 16,
@@ -124,7 +308,7 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
           ),
           const SizedBox(height: 2),
           Text(
-            "หมู่เรียน 870 | ภาคต้น | ปีการศึกษา 2568",
+            "หมู่เรียน ${widget.section ?? ""} | ${widget.semester ?? ""} | ปีการศึกษา ${widget.year ?? ""}",
             style: GoogleFonts.kanit(
               fontSize: 12,
               color: subTextColor,
@@ -171,6 +355,7 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
           onChanged: (value) {
             setState(() {
               selectedScoreType = value!;
+              _setScore();
             });
           },
         ),
@@ -203,8 +388,11 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildBigScoreItem("82", "คะแนนของฉันในรายวิชานี้"),
-              _buildBigScoreItem("100", "คะแนนเต็มในรายวิชานี้"),
+              _buildBigScoreItem("${rank == 0 ? "ไม่มีคะแนน" : rank.toString()}", "ลำดับของฉันในรายวิชานี้"),
+              _buildBigScoreItem(
+                "${selfTotalScore == 0 ? "ไม่มีคะแนน" : selfTotalScore.toStringAsFixed(2)}",
+                "คะแนนของฉันในรายวิชานี้",
+              ),
             ],
           ),
         ],
@@ -220,7 +408,7 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
             Expanded(
               child: _buildStatCard(
                 "👥 จำนวนนิสิต",
-                "47",
+                "${scores.length}",
                 "จำนวนนิสิตของรายวิชานี้",
               ),
             ),
@@ -228,7 +416,7 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
             Expanded(
               child: _buildStatCard(
                 "📊 คะแนนเฉลี่ย",
-                "71.63",
+                "${averageScore == 0 ? "ไม่มีคะแนน" : averageScore.toStringAsFixed(2)}",
                 "คะแนนเฉลี่ยของรายวิชานี้",
               ),
             ),
@@ -240,7 +428,7 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
             Expanded(
               child: _buildStatCard(
                 "🔼️ คะแนนสูงสุด",
-                "90",
+                "${maxScore == 0 ? "ไม่มีคะแนน" : maxScore.toStringAsFixed(2)}",
                 "คะแนนสูงสุดของรายวิชานี้",
               ),
             ),
@@ -248,7 +436,7 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
             Expanded(
               child: _buildStatCard(
                 "🔽 คะแนนต่ำสุด",
-                "53",
+                "${minScore == 0 ? "ไม่มีคะแนน" : minScore.toStringAsFixed(2)}",
                 "คะแนนต่ำสุดของรายวิชานี้",
               ),
             ),
@@ -264,7 +452,7 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
         Text(
           value,
           style: GoogleFonts.kanit(
-            fontSize: 48,
+            fontSize: 25,
             fontWeight: FontWeight.w500,
             color: textColor,
           ),
