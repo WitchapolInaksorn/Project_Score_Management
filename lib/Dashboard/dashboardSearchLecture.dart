@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:score_management/Dashboard/summaryDashboardLecture.dart';
-import 'package:score_management/Notify/notificationPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
@@ -498,25 +497,6 @@ class _DashboardSearchLectureState extends State<DashboardSearchLecture> {
     );
   }
 
-  Widget _buildTextField(String hint, TextEditingController controller) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: light,
-          labelText: hint,
-          labelStyle: kanit(color: textSoft),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildDropdownScore() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -587,13 +567,6 @@ class _DashboardSearchLectureState extends State<DashboardSearchLecture> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       child: Text(text, style: kanit(weight: FontWeight.w600)),
-    );
-  }
-
-  void _goToNotification() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const Notificationpage()),
     );
   }
 

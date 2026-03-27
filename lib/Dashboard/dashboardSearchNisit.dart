@@ -9,7 +9,6 @@ import 'package:score_management/Authentication/loginPage.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 
 import 'package:score_management/apiservice/apiservice.dart';
-import 'package:score_management/apiservice/model/subject.dart';
 import 'package:score_management/apiservice/model/studentinfo.dart';
 import 'package:score_management/apiservice/model/studentsubjectscore.dart';
 
@@ -120,7 +119,7 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
         await FirebaseAuth.instance.signOut();
         await GoogleSignIn().signOut();
 
-        if (!mounted) return; // 🔥 MUST HAVE
+        if (!mounted) return;
 
         Navigator.pushAndRemoveUntil(
           context,
@@ -516,25 +515,6 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
     );
   }
 
-  Widget _buildTextField(String hint, TextEditingController controller) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: light,
-          labelText: hint,
-          labelStyle: kanit(color: textSoft),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildDropdownScore() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -611,15 +591,35 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
   void _goToNotification() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const Notificationpage()),
+      MaterialPageRoute(
+        builder:
+            (_) => Notificationpage(studentId: studentInfo?.studentId ?? ""),
+      ),
     );
   }
 
-  void _onSearchPressed() {
+  void _onSearchPressed() async {
     if (!mounted) return;
 
-    if (selectedSubject?.sendStatus == "1") {
-      if (!mounted) return;
+    if (selectedSubject == null ||
+        yearValue == null ||
+        semesterValue == null ||
+        sectionValue == null) {
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.warning,
+        animType: AnimType.scale,
+        title: "ข้อมูลไม่ครบ",
+        desc: "กรุณาเลือกข้อมูลให้ครบทุกช่องก่อนค้นหา",
+        btnOkText: "ตกลง",
+        btnOkColor: Colors.orange,
+        btnOkOnPress: () {},
+      ).show();
+      return;
+    }
+
+    if (selectedSubject?.sendStatus == "1" ||
+        selectedSubject?.sendStatus == "2") {
       AwesomeDialog(
         context: context,
         dialogType: DialogType.warning,
@@ -630,17 +630,27 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
         btnOkOnPress: () {},
       ).show();
       return;
-    } else if (selectedSubject?.sendStatus == "2") {
-      if (!mounted) return;
+    }
+
+    int? subjectNo = await SubjectService.getSubjectNo(
+      subjectId: selectedSubject!.subjectId.toString(),
+      academicYear: yearValue!.toString(),
+      semester: int.parse(semesterValue!),
+      section: sectionValue!,
+    );
+
+    if (subjectNo == null) {
       AwesomeDialog(
         context: context,
-        dialogType: DialogType.warning,
+        dialogType: DialogType.error,
         animType: AnimType.scale,
-        title: "ไม่สามารถค้นหาได้",
-        desc: "คะแนนของรายวิชานี้ยังไม่ถูกส่งโดยอาจารย์ผู้สอน",
+        title: "ไม่พบข้อมูล",
+        desc: "ไม่พบข้อมูลคะแนนของรายวิชานี้\nกรุณาตรวจสอบข้อมูลอีกครั้ง",
         btnOkText: "ตกลง",
+        btnOkColor: Colors.red,
         btnOkOnPress: () {},
       ).show();
+
       return;
     } else {
       if (!mounted) return;

@@ -8,6 +8,7 @@ import 'model/subjectScore.dart';
 import 'model/student.dart';
 import 'model/studentsubjectscore.dart';
 import 'model/SubjectScoreRequest.dart';
+import 'model/StudentNotification.dart';
 
 class StudentService {
   static const String baseUrl = "https://10.0.2.2:7060/api/User";
@@ -175,6 +176,89 @@ class StudentService {
       return data.map((e) => SubjectScore.fromJson(e)).toList();
     } else {
       throw Exception("Failed to load data: ${response.body}");
+    }
+  }
+
+  static Future<List<StudentNotification>> getStudentNotification(
+    String studentId,
+  ) async {
+    HttpClient client =
+        HttpClient()
+          ..badCertificateCallback =
+              (X509Certificate cert, String host, int port) => true;
+
+    IOClient ioClient = IOClient(client);
+
+    final url = Uri.parse(
+      "https://10.0.2.2:7060/api/MasterData/GetStudentNotification/$studentId",
+    );
+
+    final response = await ioClient.get(
+      url,
+      headers: {"Content-Type": "application/json"},
+    );
+
+    print("status: ${response.statusCode}");
+    print("body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+
+      return data.map((e) => StudentNotification.fromJson(e)).toList();
+    } else if (response.statusCode == 404) {
+      return [];
+    } else {
+      throw Exception("Failed to load notification: ${response.body}");
+    }
+  }
+
+  static Future<String> deleteNotificationByDate(DateTime date) async {
+    HttpClient client =
+        HttpClient()
+          ..badCertificateCallback =
+              (X509Certificate cert, String host, int port) => true;
+
+    IOClient ioClient = IOClient(client);
+
+    final formattedDate = date.toIso8601String();
+
+    final url = Uri.parse(
+      "https://10.0.2.2:7060/api/MasterData/DeleteNotificationByDate?date=$formattedDate",
+    );
+
+    final response = await ioClient.delete(url);
+
+    print("status: ${response.statusCode}");
+    print("body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      return response.body;
+    } else {
+      throw Exception("Failed to delete: ${response.body}");
+    }
+  }
+
+  static Future<String> deleteAllNotification(String studentId) async {
+    HttpClient client =
+        HttpClient()
+          ..badCertificateCallback =
+              (X509Certificate cert, String host, int port) => true;
+
+    IOClient ioClient = IOClient(client);
+
+    final url = Uri.parse(
+      "https://10.0.2.2:7060/api/MasterData/DeleteAllNotification/$studentId",
+    );
+
+    final response = await ioClient.delete(url);
+
+    print("status: ${response.statusCode}");
+    print("body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      return response.body;
+    } else {
+      throw Exception("Failed to delete: ${response.body}");
     }
   }
 }

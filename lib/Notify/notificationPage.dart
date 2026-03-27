@@ -1,75 +1,148 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:score_management/apiservice/apiservice.dart';
+import 'package:score_management/apiservice/model/StudentNotification.dart';
+import 'package:score_management/signalr_service/signalr_service.dart';
 
 class Notificationpage extends StatefulWidget {
-  const Notificationpage({super.key});
+  final String studentId;
+  const Notificationpage({super.key, required this.studentId});
 
   @override
   State<Notificationpage> createState() => _NotificationpageState();
 }
 
 class _NotificationpageState extends State<Notificationpage> {
-  // =======================
-  // Mock Notification Data
-  // =======================
-  final List<Map<String, dynamic>> notifications = [
-    {
-      "subject": "Computer Programming",
-      "code": "01418113-65",
-      "message": "อาจารย์ได้ประกาศคะแนนของคุณเรียบร้อยแล้ว",
-      "section": "870",
-      "semester": "ภาคต้น",
-      "year": "2568",
-      "date": "17/10/67 14:23",
-      "tags": ["กลางภาค", "คะแนนเก็บ", "ปลายภาค"],
-      "tagColors": [Color(0xFFF4C430), Color(0xFF49AF6B), Color(0xFFFF6B6B)],
-    },
-    {
-      "subject": "Computer Programming ",
-      "code": "01418113-65",
-      "message": "อาจารย์ได้ประกาศคะแนนของคุณเรียบร้อยแล้ว",
-      "section": "880",
-      "semester": "ภาคต้น",
-      "year": "2568",
-      "date": "27/09/67 19:10",
-      "tags": ["กลางภาค", "คะแนนเก็บ"],
-      "tagColors": [Color(0xFFF4C430), Color(0xFF49AF6B)],
-    },
-    {
-      "subject": "Computer Programming",
-      "code": "01418113-65",
-      "message": "อาจารย์ได้ประกาศคะแนนของคุณเรียบร้อยแล้ว",
-      "section": "870",
-      "semester": "ภาคต้น",
-      "year": "2568",
-      "date": "17/04/67 15:45",
-      "tags": ["กลางภาค"],
-      "tagColors": [Color(0xFFF4C430)],
-    },
-    {
-      "subject": "Computer Programming",
-      "code": "01418113-65",
-      "message": "อาจารย์ได้ประกาศคะแนนของคุณเรียบร้อยแล้ว",
-      "section": "880",
-      "semester": "ภาคต้น",
-      "year": "2568",
-      "date": "15/04/67 16:30",
-      "tags": ["กลางภาค"],
-      "tagColors": [Color(0xFFF4C430)],
-    },
-  ];
+  List<Map<String, dynamic>> notifications = [];
 
-  void _clearAllNotifications() {
+  SignalRService? signalRService;
+
+  bool hasNewNotification = false;
+
+  void _clearAllNotifications() async {
     if (notifications.isEmpty) return;
 
-    setState(() {
-      notifications.clear();
-    });
+    try {
+      await StudentService.deleteAllNotification(widget.studentId);
+
+      setState(() {
+        notifications.clear();
+        hasNewNotification = false;
+      });
+    } catch (e) {
+      print("ลบทั้งหมด error: $e");
+    }
   }
 
-  // =======================
-  // Main Build
-  // =======================
+  @override
+  void initState() {
+    super.initState();
+    loadNotifications();
+    setupSignalR();
+
+    hasNewNotification = false;
+  }
+
+  @override
+  void dispose() {
+    signalRService?.disconnect();
+    super.dispose();
+  }
+
+  void setupSignalR() async {
+    final service = SignalRService();
+
+    await service.connect(
+      studentId: widget.studentId,
+      onReceive: (data) {
+        print("🔥 Received notification: $data");
+        if (!mounted) return;
+
+        DateTime date = DateTime.parse(data['sendTime']);
+
+        setState(() {
+          hasNewNotification = true;
+
+          notifications.insert(0, {
+            "subject": data['subjectName'],
+            "code": data['subjectId'],
+            "section": data['section'],
+            "semester": data['semester'],
+            "year": data['academicYear'],
+            "message": data['sendDesc'],
+            "date": "${date.day}/${date.month}/${date.year}",
+            "dateObj": date,
+          });
+        });
+      },
+    );
+
+    signalRService = service;
+  }
+
+  Future<void> loadNotifications() async {
+    try {
+      final List<StudentNotification> data =
+          await StudentService.getStudentNotification(widget.studentId);
+
+      final semesterMap = {"1": "ภาคต้น", "2": "ภาคปลาย", "3": "ภาคฤดูร้อน"};
+
+      final sectionMap = {
+        "1": "800",
+        "2": "801",
+        "3": "802",
+        "4": "803",
+        "5": "830",
+        "6": "831",
+        "7": "850",
+        "8": "851",
+        "9": "870",
+        "10": "880",
+        "11": "881",
+      };
+
+      final yearMap = {
+        "1": "2564",
+        "2": "2565",
+        "3": "2566",
+        "4": "2567",
+        "5": "2568",
+      };
+
+      List<Map<String, dynamic>> mapped =
+          data.map((item) {
+            bool isSuccess = item.sendStatus == "success";
+
+            return {
+              "subject": item.subjectName,
+              "code": item.subjectId,
+
+              "section": sectionMap[item.section.toString()] ?? item.section,
+              "semester":
+                  semesterMap[item.semester.toString()] ?? item.semester,
+              "year":
+                  yearMap[item.academicYear.toString()] ?? item.academicYear,
+
+              "tagColors": [
+                isSuccess ? Colors.green.shade300 : Colors.red.shade300,
+              ],
+              "message": item.sendDesc ?? "มีการอัปเดตคะแนนใหม่",
+
+              "date":
+                  "${item.sendTime.day}/${item.sendTime.month}/${item.sendTime.year}",
+
+              "dateObj": item.sendTime,
+            };
+          }).toList();
+
+      setState(() {
+        notifications = mapped;
+      });
+    } catch (e) {
+      print("โหลด noti error: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,9 +157,28 @@ class _NotificationpageState extends State<Notificationpage> {
     );
   }
 
-  // =======================
-  // Header
-  // =======================
+  Widget _buildNotificationIcon() {
+    return Stack(
+      children: [
+        const Icon(Icons.notifications, color: Color(0xFF4A4E49), size: 28),
+
+        if (hasNewNotification)
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildHeader() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -100,7 +192,7 @@ class _NotificationpageState extends State<Notificationpage> {
         children: [
           Row(
             children: [
-              const Icon(Icons.notifications_active, color: Color(0xFF4A4E49)),
+              _buildNotificationIcon(),
               const SizedBox(width: 8),
               Text(
                 "การแจ้งเตือน",
@@ -128,9 +220,6 @@ class _NotificationpageState extends State<Notificationpage> {
     );
   }
 
-  // =======================
-  // Notification List
-  // =======================
   Widget _buildNotificationList() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -183,9 +272,6 @@ class _NotificationpageState extends State<Notificationpage> {
     );
   }
 
-  // =======================
-  // Notification Card
-  // =======================
   Widget _buildNotificationCard(Map<String, dynamic> data, int index) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -207,8 +293,6 @@ class _NotificationpageState extends State<Notificationpage> {
                     children: [
                       _buildTitle(data),
                       const SizedBox(height: 5),
-                      _buildTags(data),
-                      const SizedBox(height: 5),
                       _buildMessage(data),
                       _buildFooterInfo(data),
                       const SizedBox(height: 5),
@@ -225,10 +309,6 @@ class _NotificationpageState extends State<Notificationpage> {
     );
   }
 
-  // =======================
-  // Sub Widgets
-  // =======================
-
   Widget _buildTitle(Map<String, dynamic> data) {
     return RichText(
       text: TextSpan(
@@ -236,13 +316,12 @@ class _NotificationpageState extends State<Notificationpage> {
           TextSpan(
             text: "📚 ${data['subject']}  ",
             style: GoogleFonts.kanit(
-              color: const Color(0xFF4A4E49),
               fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF656E62),
             ),
           ),
           WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
               decoration: BoxDecoration(
@@ -252,9 +331,9 @@ class _NotificationpageState extends State<Notificationpage> {
               child: Text(
                 data['code'],
                 style: GoogleFonts.kanit(
-                  color: const Color(0xFF4A4E49),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF656E62),
                 ),
               ),
             ),
@@ -264,42 +343,25 @@ class _NotificationpageState extends State<Notificationpage> {
     );
   }
 
-  Widget _buildTags(Map<String, dynamic> data) {
-    return Wrap(
-      spacing: 3,
-      children: List.generate(data['tags'].length, (index) {
-        return _buildTag(data['tags'][index], data['tagColors'][index]);
-      }),
-    );
-  }
-
   Widget _buildMessage(Map<String, dynamic> data) {
     return Text(
-      data['message'],
+      'อาจารย์ได้ประกาศคะแนนของคุณเรียบร้อยแล้ว',
       style: GoogleFonts.kanit(
         fontSize: 14,
-        color: const Color(0xFF4A4E49),
         fontWeight: FontWeight.w500,
+        color: const Color(0xFF656E62),
       ),
     );
   }
 
   Widget _buildFooterInfo(Map<String, dynamic> data) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            "หมู่เรียน ${data['section']} | ${data['semester']} | ปีการศึกษา ${data['year']}",
-            style: GoogleFonts.kanit(
-              fontSize: 12,
-              color: const Color(0xFF656E62),
-              fontWeight: FontWeight.w600,
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-        ),
-      ],
+    return Text(
+      "หมู่เรียน ${data['section']} | ${data['semester']} | ปีการศึกษา ${data['year']}",
+      style: GoogleFonts.kanit(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: const Color(0xFF656E62),
+      ),
     );
   }
 
@@ -309,9 +371,9 @@ class _NotificationpageState extends State<Notificationpage> {
       child: Text(
         data['date'],
         style: GoogleFonts.kanit(
-          fontSize: 12,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
           color: const Color(0xFF656E62),
-          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -322,43 +384,32 @@ class _NotificationpageState extends State<Notificationpage> {
       top: 3,
       right: 9,
       child: GestureDetector(
-        onTap: () {
-          setState(() {
-            notifications.removeAt(index);
-          });
+        onTap: () async {
+          try {
+            final noti = notifications[index];
+
+            DateTime date = noti["dateObj"];
+
+            await StudentService.deleteNotificationByDate(date);
+
+            setState(() {
+              notifications.removeAt(index);
+            });
+          } catch (e) {
+            print("ลบ noti error: $e");
+
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text("ลบไม่สำเร็จ")));
+          }
         },
         child: Container(
           padding: const EdgeInsets.all(7),
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: Color(0xFFF1F3E0),
+            color: Color.fromARGB(255, 133, 165, 133),
           ),
-          child: Text(
-            'X',
-            style: GoogleFonts.kanit(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF4A4E49),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTag(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(500),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.kanit(
-          fontSize: 13,
-          color: const Color(0xFF4A4E49),
-          fontWeight: FontWeight.w500,
+          child: const Text('X'),
         ),
       ),
     );

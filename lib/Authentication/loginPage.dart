@@ -5,11 +5,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:score_management/Authentication/nisitFormPage.dart';
 import 'package:score_management/Navigation/mainNavbar.dart';
-import 'package:score_management/Homepage/homepageLecture.dart';
 import 'package:score_management/apiservice/apiservice.dart';
-import 'package:score_management/apiservice/model/studentinfo.dart';
 import 'dart:ui';
-import 'package:score_management/signalr_service/signalr_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

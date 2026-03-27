@@ -5,8 +5,6 @@ import 'package:score_management/Homepage/homepageLecture.dart';
 import 'package:score_management/Dashboard/dashboardSearchNisit.dart';
 import 'package:score_management/Homepage/homepageNisit.dart';
 import 'package:score_management/apiservice/apiservice.dart';
-import 'package:score_management/apiservice/model/studentinfo.dart';
-import 'package:score_management/apiservice/model/teacher.dart';
 
 class MainNavigation extends StatefulWidget {
   final String email;

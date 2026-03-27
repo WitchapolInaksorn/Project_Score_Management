@@ -3,8 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:confetti/confetti.dart';
 import 'package:score_management/apiservice/apiservice.dart';
 import 'package:score_management/apiservice/model/student.dart';
-import 'package:score_management/apiservice/model/teacher.dart';
-import 'package:score_management/apiservice/model/subject.dart';
 import 'package:score_management/apiservice/model/subjectScore.dart';
 
 // --- Constants & Styles ---
@@ -47,7 +45,6 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
   Student? studentInfo;
 
   List<SubjectScore> scores = [];
-
 
   List<Map<String, String>> filteredResults = [];
   List<Map<String, String>> studentResults = [];
@@ -383,12 +380,19 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
       },
       {
         "label": "รวม",
-        "score": (studentScore.midtermScore ?? 0) + (studentScore.accumulatedScore ?? 0) + (studentScore.finalScore ?? 0),
+        "score":
+            (studentScore.midtermScore ?? 0) +
+            (studentScore.accumulatedScore ?? 0) +
+            (studentScore.finalScore ?? 0),
         "color": const Color(0xFF63A2FF),
       },
     ];
 
-    final totalScore = (studentScore.midtermScore ?? 0) + (studentScore.accumulatedScore ?? 0) + (studentScore.finalScore ?? 0) ?? 0;
+    final totalScore =
+        (studentScore.midtermScore ?? 0) +
+            (studentScore.accumulatedScore ?? 0) +
+            (studentScore.finalScore ?? 0) ??
+        0;
 
     showGeneralDialog(
       context: context,

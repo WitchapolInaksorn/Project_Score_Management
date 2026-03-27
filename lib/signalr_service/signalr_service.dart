@@ -1,35 +1,29 @@
-// import 'package:signalr_core/signalr_core.dart';
+import 'package:signalr_netcore/signalr_client.dart';
 
-// class SignalRService {
-//   late HubConnection connection;
+class SignalRService {
+  late HubConnection connection;
 
-//   Future<void> connect(String email) async {
-//     connection = HubConnectionBuilder()
-//         .withUrl("https://your-api-url/notifyHub") // 🔥 เปลี่ยน URL
-//         .withAutomaticReconnect()
-//         .build();
+  Future<void> connect({
+    required String studentId,
+    required Function(dynamic data) onReceive,
+  }) async {
+    connection =
+        HubConnectionBuilder()
+            .withUrl("http://10.0.2.2:5155/notifyHub")
+            .build();
 
-//     await connection.start();
+    connection.on("ReceiveNotification", (arguments) {
+      if (arguments != null && arguments.isNotEmpty) {
+        onReceive(arguments[0]);
+      }
+    });
 
-//     print("SignalR Connected");
+    await connection.start();
 
-//     // ✅ Join group ด้วย email
-//     await connection.invoke("JoinGroupByEmail", args: [email]);
+    await connection.invoke("JoinGroup", args: [studentId]);
+  }
 
-//     print("Joined group: $email");
-
-//     // 🎯 รับ notify คะแนน
-//     connection.on("ReceiveStudentScore", (data) {
-//       print("📩 Score update: ${data![0]}");
-//     });
-
-//     // 🎯 รับ notification
-//     connection.on("ReceiveNotification", (data) {
-//       print("🔔 Notification: ${data![0]}");
-//     });
-//   }
-
-//   Future<void> disconnect() async {
-//     await connection.stop();
-//   }
-// }
+  Future<void> disconnect() async {
+    await connection.stop();
+  }
+}

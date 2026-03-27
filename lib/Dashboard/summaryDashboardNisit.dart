@@ -152,62 +152,58 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
   }
 
   void _setScore() {
-  if (scores.isEmpty) {
-    totalScore = 0;
-    averageScore = 0;
-    maxScore = 0;
-    minScore = 0;
-    rank = 0;
-    return;
-  }
-
-  // 🔥 function กลาง
-  double getScore(SubjectScore s) {
-    switch (selectedScoreType) {
-      case "คะแนนทั้งหมด":
-        return (s.accumulatedScore ?? 0) +
-               (s.midtermScore ?? 0) +
-               (s.finalScore ?? 0);
-      case "คะแนนเก็บ":
-        return s.accumulatedScore ?? 0;
-      case "คะแนนกลางภาค":
-        return s.midtermScore ?? 0;
-      case "คะแนนปลายภาค":
-        return s.finalScore ?? 0;
-      default:
-        return 0;
+    if (scores.isEmpty) {
+      totalScore = 0;
+      averageScore = 0;
+      maxScore = 0;
+      minScore = 0;
+      rank = 0;
+      return;
     }
+
+    // 🔥 function กลาง
+    double getScore(SubjectScore s) {
+      switch (selectedScoreType) {
+        case "คะแนนทั้งหมด":
+          return (s.accumulatedScore ?? 0) +
+              (s.midtermScore ?? 0) +
+              (s.finalScore ?? 0);
+        case "คะแนนเก็บ":
+          return s.accumulatedScore ?? 0;
+        case "คะแนนกลางภาค":
+          return s.midtermScore ?? 0;
+        case "คะแนนปลายภาค":
+          return s.finalScore ?? 0;
+        default:
+          return 0;
+      }
+    }
+
+    // 🔹 total + avg
+    totalScore = scores.fold(0, (sum, s) => sum + getScore(s));
+    averageScore = totalScore / scores.length;
+
+    // 🔹 max
+    maxScore = scores.map((s) => getScore(s)).reduce((a, b) => a > b ? a : b);
+
+    // 🔹 min
+    minScore = scores.map((s) => getScore(s)).reduce((a, b) => a < b ? a : b);
+
+    // 🔥 SORT เพื่อหา rank
+    final sorted = [...scores];
+    sorted.sort((a, b) => getScore(b).compareTo(getScore(a)));
+
+    // 🔹 หาคะแนนของตัวเอง
+    final myScoreObj = sorted.firstWhere(
+      (s) => s.studentId == widget.studentId,
+    );
+
+    final myScore = getScore(myScoreObj);
+
+    // 🔹 หา rank
+    rank = sorted.indexWhere((s) => getScore(s) == myScore) + 1;
+    selfTotalScore = myScore;
   }
-
-  // 🔹 total + avg
-  totalScore = scores.fold(0, (sum, s) => sum + getScore(s));
-  averageScore = totalScore / scores.length;
-
-  // 🔹 max
-  maxScore = scores
-      .map((s) => getScore(s))
-      .reduce((a, b) => a > b ? a : b);
-
-  // 🔹 min
-  minScore = scores
-      .map((s) => getScore(s))
-      .reduce((a, b) => a < b ? a : b);
-
-  // 🔥 SORT เพื่อหา rank
-  final sorted = [...scores];
-  sorted.sort((a, b) => getScore(b).compareTo(getScore(a)));
-
-  // 🔹 หาคะแนนของตัวเอง
-  final myScoreObj = sorted.firstWhere(
-    (s) => s.studentId == widget.studentId,
-  );
-
-  final myScore = getScore(myScoreObj);
-
-  // 🔹 หา rank
-  rank = sorted.indexWhere((s) => getScore(s) == myScore) + 1;
-  selfTotalScore = myScore;
-}
 
   @override
   Widget build(BuildContext context) {
@@ -388,7 +384,10 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildBigScoreItem("${rank == 0 ? "ไม่มีคะแนน" : rank.toString()}", "ลำดับของฉันในรายวิชานี้"),
+              _buildBigScoreItem(
+                "${rank == 0 ? "ไม่มีคะแนน" : rank.toString()}",
+                "ลำดับของฉันในรายวิชานี้",
+              ),
               _buildBigScoreItem(
                 "${selfTotalScore == 0 ? "ไม่มีคะแนน" : selfTotalScore.toStringAsFixed(2)}",
                 "คะแนนของฉันในรายวิชานี้",
@@ -493,7 +492,7 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
           Text(
             value,
             style: GoogleFonts.kanit(
-              fontSize: 34,
+              fontSize: value == "ไม่มีคะแนน" ? 20 : 34,
               fontWeight: FontWeight.w500,
               color: textColor,
             ),

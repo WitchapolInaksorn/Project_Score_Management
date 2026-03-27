@@ -11,7 +11,6 @@ import 'package:score_management/Authentication/loginPage.dart';
 import 'package:score_management/apiservice/model/studentinfo.dart';
 import 'package:score_management/apiservice/apiservice.dart';
 import 'package:score_management/apiservice/model/studentsubjectscore.dart';
-import 'package:score_management/apiservice/model/subject.dart';
 
 class HomepageNisit extends StatefulWidget {
   final String email;
@@ -110,7 +109,7 @@ class _HomepageNisitState extends State<HomepageNisit> {
 
   void _logout() {
     if (!mounted) return;
-    
+
     AwesomeDialog(
       context: context,
       dialogType: DialogType.question,
@@ -519,25 +518,6 @@ class _HomepageNisitState extends State<HomepageNisit> {
     );
   }
 
-  Widget _buildTextField(String hint, TextEditingController controller) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: light,
-          labelText: hint,
-          labelStyle: kanit(color: textSoft),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildActionButtons() {
     return Row(
       children: [
@@ -579,50 +559,82 @@ class _HomepageNisitState extends State<HomepageNisit> {
   void _goToNotification() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const Notificationpage()),
+      MaterialPageRoute(
+        builder:
+            (_) => Notificationpage(studentId: studentInfo?.studentId ?? ""),
+      ),
     );
   }
 
-  void _onSearchPressed() {
-    if (selectedSubject?.sendStatus == "1") {
+  void _onSearchPressed() async {
+    if (selectedSubject == null ||
+        yearValue == null ||
+        semesterValue == null ||
+        sectionValue == null) {
       AwesomeDialog(
         context: context,
         dialogType: DialogType.warning,
         animType: AnimType.scale,
-        title: "ไม่สามารถค้นหาได้",
-        desc: "คะแนนของรายวิชานี้ยังไม่ถูกส่งโดยอาจารย์ผู้สอน",
+        title: "ข้อมูลไม่ครบ",
+        desc: "กรุณาเลือกข้อมูลให้ครบทุกช่องก่อนค้นหา",
         btnOkText: "ตกลง",
+        btnOkColor: Colors.orange,
         btnOkOnPress: () {},
       ).show();
       return;
-    } else if (selectedSubject?.sendStatus == "2") {
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.warning,
-        animType: AnimType.scale,
-        title: "ไม่สามารถค้นหาได้",
-        desc: "คะแนนของรายวิชานี้ยังไม่ถูกส่งโดยอาจารย์ผู้สอน",
-        btnOkText: "ตกลง",
-        btnOkOnPress: () {},
-      ).show();
-      return;
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (_) => SearchScoreNisit(
-                studentId: studentInfo?.studentId,
-                sysSubjectNo: selectedSubject?.sysSubjectNo,
-                subjectId: selectedSubject?.subjectId ?? "",
-                subjectName: selectedSubject?.subjectName ?? "",
-                year: yearController.text,
-                semester: semesterController.text,
-                section: sectionController.text,
-              ),
-        ),
-      );
     }
+
+    if (selectedSubject?.sendStatus == "1" ||
+        selectedSubject?.sendStatus == "2") {
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.warning,
+        animType: AnimType.scale,
+        title: "ไม่สามารถค้นหาได้",
+        desc: "คะแนนของรายวิชานี้ยังไม่ถูกส่งโดยอาจารย์ผู้สอน",
+        btnOkText: "ตกลง",
+        btnOkOnPress: () {},
+      ).show();
+      return;
+    }
+
+    int? sysSubjectNo = await SubjectService.getSubjectNo(
+      subjectId: selectedSubject!.subjectId.toString(),
+      academicYear: yearValue!.toString(),
+      semester: int.parse(semesterValue!),
+      section: sectionValue!,
+    );
+
+    if (sysSubjectNo == null) {
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        animType: AnimType.scale,
+        title: "ไม่พบข้อมูล",
+        desc: "ไม่พบข้อมูลคะแนนของรายวิชานี้\nกรุณาตรวจสอบข้อมูลอีกครั้ง",
+        btnOkText: "ตกลง",
+        btnOkColor: Colors.red,
+        btnOkOnPress: () {},
+      ).show();
+
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => SearchScoreNisit(
+              studentId: studentInfo?.studentId,
+              sysSubjectNo: sysSubjectNo,
+              subjectId: selectedSubject?.subjectId ?? "",
+              subjectName: selectedSubject?.subjectName ?? "",
+              year: yearController.text,
+              semester: semesterController.text,
+              section: sectionController.text,
+            ),
+      ),
+    );
   }
 
   void _onResetPressed() {
