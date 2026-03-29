@@ -28,12 +28,13 @@ class StudentNotification {
       studentId: json['student_id'] ?? '',
       sysSubjectNo: json['sys_subject_no'] ?? 0,
       subjectId: json['subject_id'] ?? '',
+      subjectName:
+          json['subject_name'] ?? json['subjectName'] ?? 'ไม่ระบุชื่อวิชา',
       sendStatus: json['send_status'] ?? '',
       sendDesc: json['send_desc'],
       semester: json['semester'] ?? '',
       academicYear: json['academic_year'] ?? '',
       section: json['section'] ?? '',
-      subjectName: json['subject_name'] ?? '',
       sendTime: DateTime.parse(json['send_time']),
     );
   }

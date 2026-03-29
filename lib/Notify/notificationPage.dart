@@ -15,9 +15,7 @@ class Notificationpage extends StatefulWidget {
 class _NotificationpageState extends State<Notificationpage> {
   List<Map<String, dynamic>> notifications = [];
 
-  SignalRService? signalRService;
-
-  bool hasNewNotification = false;
+  // SignalRService? signalRService;
 
   void _clearAllNotifications() async {
     if (notifications.isEmpty) return;
@@ -27,7 +25,6 @@ class _NotificationpageState extends State<Notificationpage> {
 
       setState(() {
         notifications.clear();
-        hasNewNotification = false;
       });
     } catch (e) {
       print("ลบทั้งหมด error: $e");
@@ -35,58 +32,32 @@ class _NotificationpageState extends State<Notificationpage> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    loadNotifications();
-    setupSignalR();
-
-    hasNewNotification = false;
-  }
-
-  @override
   void dispose() {
-    signalRService?.disconnect();
+    SignalRService().removeListener(_listener);
     super.dispose();
   }
 
-  void setupSignalR() async {
-    final service = SignalRService();
-
-    await service.connect(
-      studentId: widget.studentId,
-      onReceive: (data) {
-        print("🔥 Received notification: $data");
-        if (!mounted) return;
-
-        DateTime date = DateTime.parse(data['sendTime']);
-
-        setState(() {
-          hasNewNotification = true;
-
-          notifications.insert(0, {
-            "subject": data['subjectName'],
-            "code": data['subjectId'],
-            "section": data['section'],
-            "semester": data['semester'],
-            "year": data['academicYear'],
-            "message": data['sendDesc'],
-            "date": "${date.day}/${date.month}/${date.year}",
-            "dateObj": date,
-          });
-        });
-      },
-    );
-
-    signalRService = service;
+  @override
+  void initState() {
+    super.initState();
+    loadNotifications();
+    // setupSignalR();
+    setupListener();
   }
 
-  Future<void> loadNotifications() async {
-    try {
-      final List<StudentNotification> data =
-          await StudentService.getStudentNotification(widget.studentId);
+  late Function(dynamic) _listener;
 
+  void setupListener() {
+    final service = SignalRService();
+
+    _listener = (data) {
+      if (!mounted) return;
+
+      final subjectId = data['subjectId'];
+      DateTime newDate = DateTime.parse(data['sendTime']);
+
+      // เตรียมข้อมูลใหม่
       final semesterMap = {"1": "ภาคต้น", "2": "ภาคปลาย", "3": "ภาคฤดูร้อน"};
-
       final sectionMap = {
         "1": "800",
         "2": "801",
@@ -100,7 +71,6 @@ class _NotificationpageState extends State<Notificationpage> {
         "10": "880",
         "11": "881",
       };
-
       final yearMap = {
         "1": "2564",
         "2": "2565",
@@ -109,38 +79,185 @@ class _NotificationpageState extends State<Notificationpage> {
         "5": "2568",
       };
 
-      List<Map<String, dynamic>> mapped =
-          data.map((item) {
-            bool isSuccess = item.sendStatus == "success";
-
-            return {
-              "subject": item.subjectName,
-              "code": item.subjectId,
-
-              "section": sectionMap[item.section.toString()] ?? item.section,
-              "semester":
-                  semesterMap[item.semester.toString()] ?? item.semester,
-              "year":
-                  yearMap[item.academicYear.toString()] ?? item.academicYear,
-
-              "tagColors": [
-                isSuccess ? Colors.green.shade300 : Colors.red.shade300,
-              ],
-              "message": item.sendDesc ?? "มีการอัปเดตคะแนนใหม่",
-
-              "date":
-                  "${item.sendTime.day}/${item.sendTime.month}/${item.sendTime.year}",
-
-              "dateObj": item.sendTime,
-            };
-          }).toList();
+      final newItem = {
+        "key": "${subjectId}_${data['sendTime']}",
+        "subject":
+            data['subject_name'] ?? data['subjectName'] ?? "ไม่ระบุชื่อวิชา",
+        "code": subjectId,
+        "section": sectionMap[data['section'].toString()] ?? data['section'],
+        "semester":
+            semesterMap[data['semester'].toString()] ?? data['semester'],
+        "year":
+            yearMap[data['academicYear'].toString()] ??
+            data['academicYear'].toString(),
+        "message": data['sendDesc'],
+        "date": "${newDate.day}/${newDate.month}/${newDate.year}",
+        "dateObj": newDate,
+      };
 
       setState(() {
-        notifications = mapped;
+        // ✅ หาตำแหน่งของวิชาเดิมใน List
+        final existingIndex = notifications.indexWhere(
+          (item) => item["code"] == subjectId,
+        );
+
+        if (existingIndex != -1) {
+          // ถ้ามีอยู่แล้ว ให้เช็คว่าตัวใหม่ที่ส่งมา "ใหม่กว่า" ของเดิมที่มีในหน้าจอไหม
+          if (newDate.isAfter(notifications[existingIndex]['dateObj'])) {
+            notifications.removeAt(existingIndex); // เอาตัวเก่าออก
+            notifications.insert(0, newItem); // ใส่ตัวใหม่เข้าข้างบนสุด
+          }
+        } else {
+          // ถ้าเป็นวิชาใหม่ที่ยังไม่มีในหน้าจอเลย
+          notifications = [newItem, ...notifications];
+        }
+        sortNotifications();
+      });
+    };
+
+    service.addListener(_listener);
+  }
+  // void setupSignalR() async {
+  //   final service = SignalRService();
+
+  //   await service.connect(
+  //     studentId: widget.studentId,
+  //     onReceive: (data) {
+  //       print("🔥 Received notification: $data");
+  //       if (!mounted) return;
+
+  //       DateTime date = DateTime.parse(data['sendTime']);
+
+  //       final semesterMap = {"1": "ภาคต้น", "2": "ภาคปลาย", "3": "ภาคฤดูร้อน"};
+  //       final sectionMap = {
+  //         "1": "800",
+  //         "2": "801",
+  //         "3": "802",
+  //         "4": "803",
+  //         "5": "830",
+  //         "6": "831",
+  //         "7": "850",
+  //         "8": "851",
+  //         "9": "870",
+  //         "10": "880",
+  //         "11": "881",
+  //       };
+
+  //       final yearMap = {
+  //         "1": "2564",
+  //         "2": "2565",
+  //         "3": "2566",
+  //         "4": "2567",
+  //         "5": "2568",
+  //       };
+
+  //       setState(() {
+  //         final newItem = {
+  //           "subject":
+  //               data['subject_name'] ??
+  //               data['subjectName'] ??
+  //               "ไม่ระบุชื่อวิชา",
+  //           "code": data['subjectId'],
+
+  //           "section":
+  //               sectionMap[data['section'].toString()] ?? data['section'],
+  //           "semester":
+  //               semesterMap[data['semester'].toString()] ?? data['semester'],
+
+  //           "year":
+  //               yearMap[data['academicYear'].toString()] ??
+  //               data['academicYear'].toString(),
+
+  //           "message": data['sendDesc'],
+  //           "date": "${date.day}/${date.month}/${date.year}",
+  //           "dateObj": date,
+  //         };
+
+  //         notifications = [newItem, ...notifications];
+  //         sortNotifications();
+  //       });
+  //     },
+  //   );
+
+  //   signalRService = service;
+  // }
+
+  Future<void> loadNotifications() async {
+    try {
+      final List<StudentNotification> data =
+          await StudentService.getStudentNotification(widget.studentId);
+
+      final semesterMap = {"1": "ภาคต้น", "2": "ภาคปลาย", "3": "ภาคฤดูร้อน"};
+      final sectionMap = {
+        "1": "800",
+        "2": "801",
+        "3": "802",
+        "4": "803",
+        "5": "830",
+        "6": "831",
+        "7": "850",
+        "8": "851",
+        "9": "870",
+        "10": "880",
+        "11": "881",
+      };
+      final yearMap = {
+        "1": "2564",
+        "2": "2565",
+        "3": "2566",
+        "4": "2567",
+        "5": "2568",
+      };
+
+      // ✅ ใช้ Map เพื่อดึงเฉพาะรายการล่าสุดของแต่ละวิชา
+      final Map<String, Map<String, dynamic>> latestMap = {};
+
+      for (var item in data) {
+        final subjectId = item.subjectId;
+        final sendTime = item.sendTime;
+
+        // ถ้ายังไม่มีวิชานี้ใน Map หรือรายการที่กำลังอ่านอยู่ 'ใหม่กว่า' ที่มีอยู่เดิม
+        if (!latestMap.containsKey(subjectId) ||
+            sendTime.isAfter(latestMap[subjectId]!['dateObj'])) {
+          bool isSuccess = item.sendStatus == "success";
+          final uniqueKey =
+              "${item.subjectId}_${item.sendTime.toIso8601String()}";
+
+          latestMap[subjectId] = {
+            "key": uniqueKey,
+            "subject": item.subjectName,
+            "code": item.subjectId,
+            "section": sectionMap[item.section.toString()] ?? item.section,
+            "semester": semesterMap[item.semester.toString()] ?? item.semester,
+            "year": yearMap[item.academicYear.toString()] ?? item.academicYear,
+            "tagColors": [
+              isSuccess ? Colors.green.shade300 : Colors.red.shade300,
+            ],
+            "message": item.sendDesc ?? "อาจารย์ประกาศคะแนนแล้ว",
+            "date":
+                "${item.sendTime.day}/${item.sendTime.month}/${item.sendTime.year}",
+            "dateObj": item.sendTime,
+          };
+        }
+      }
+
+      setState(() {
+        // ✅ แปลงค่าจาก Map กลับเป็น List
+        notifications = latestMap.values.toList();
+        sortNotifications();
       });
     } catch (e) {
       print("โหลด noti error: $e");
     }
+  }
+
+  void sortNotifications() {
+    notifications.sort((a, b) {
+      DateTime dateA = a['dateObj'];
+      DateTime dateB = b['dateObj'];
+
+      return dateB.compareTo(dateA);
+    });
   }
 
   @override
@@ -157,28 +274,6 @@ class _NotificationpageState extends State<Notificationpage> {
     );
   }
 
-  Widget _buildNotificationIcon() {
-    return Stack(
-      children: [
-        const Icon(Icons.notifications, color: Color(0xFF4A4E49), size: 28),
-
-        if (hasNewNotification)
-          Positioned(
-            right: 0,
-            top: 0,
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
   Widget _buildHeader() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -190,10 +285,16 @@ class _NotificationpageState extends State<Notificationpage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // ปุ่มย้อนกลับ + ชื่อหน้ารวมกัน
           Row(
             children: [
-              _buildNotificationIcon(),
-              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF4A4E49)),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(width: 4),
               Text(
                 "การแจ้งเตือน",
                 style: GoogleFonts.kanit(
@@ -229,6 +330,7 @@ class _NotificationpageState extends State<Notificationpage> {
           notifications.isEmpty
               ? _buildEmptyState()
               : ListView.builder(
+                key: ValueKey(notifications.length),
                 padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
                 itemCount: notifications.length,
                 itemBuilder: (context, index) {
@@ -345,7 +447,7 @@ class _NotificationpageState extends State<Notificationpage> {
 
   Widget _buildMessage(Map<String, dynamic> data) {
     return Text(
-      'อาจารย์ได้ประกาศคะแนนของคุณเรียบร้อยแล้ว',
+      data['message'],
       style: GoogleFonts.kanit(
         fontSize: 14,
         fontWeight: FontWeight.w500,

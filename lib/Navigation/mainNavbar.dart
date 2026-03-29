@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:score_management/Authentication/nisitFormPage.dart';
 import 'package:score_management/Dashboard/dashboardSearchLecture.dart';
 import 'package:score_management/Homepage/homepageLecture.dart';
 import 'package:score_management/Dashboard/dashboardSearchNisit.dart';
@@ -27,29 +28,38 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   Future<void> _initUserRole() async {
-    bool isTeacher = await TeacherService.checkEmail(widget.email);
-    final student = await StudentService.getStudentByEmail(widget.email);
+    try {
+      bool isTeacher = await TeacherService.checkEmail(widget.email);
+      final student = await StudentService.getStudentByEmail(widget.email);
 
-    if (isTeacher) {
-      _pages = [
-        HomepageLecture(email: widget.email),
-        const DashboardSearchLecture(),
-      ];
-      _currentIndex = 0;
-    } else if (student != null) {
-      _pages = [
-        HomepageNisit(email: widget.email),
-        const DashboardSearchNisit(),
-      ];
-      _currentIndex = 0;
-    } else {
-      _pages = [const Center(child: Text("ไม่พบข้อมูลผู้ใช้"))];
-    }
+      if (isTeacher) {
+        _pages = [
+          HomepageLecture(email: widget.email),
+          const DashboardSearchLecture(),
+        ];
+      } else if (student != null) {
+        _pages = [
+          HomepageNisit(email: widget.email),
+          const DashboardSearchNisit(),
+        ];
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const NisitFormPage()),
+          );
+        });
+        return; // ออกจาก function
+      }
 
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      // จัดการ error กรณี API ล่ม
+      print("Error init role: $e");
     }
   }
 

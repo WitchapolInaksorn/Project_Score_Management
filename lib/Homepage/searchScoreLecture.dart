@@ -37,7 +37,6 @@ class SearchScoreLecture extends StatefulWidget {
 }
 
 class _SearchScoreLectureState extends State<SearchScoreLecture> {
-  // 🔹 State variables: สำหรับจัดการข้อมูลในหน้า UI
   late ConfettiController _confettiController;
   final TextEditingController nameController = TextEditingController();
   final TextEditingController studentIdController = TextEditingController();
@@ -52,7 +51,6 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
   @override
   void initState() {
     super.initState();
-    // filteredResults = List.from(studentResults);
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
     );
@@ -71,6 +69,12 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
     final result = await StudentService.getScoreBySubjectNo(
       widget.sysSubjectNo!,
     );
+
+    result.sort((a, b) {
+      final aSeat = a.seatNo ?? 0;
+      final bSeat = b.seatNo ?? 0;
+      return (aSeat as num).compareTo(bSeat as num);
+    });
 
     setState(() {
       scores = result;
@@ -91,6 +95,7 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
       }
       setState(() {
         filteredResults = results;
+        studentResults = List.from(results);
       });
     }
   }
@@ -137,24 +142,31 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
     );
   }
 
-  // ส่วนหัวของหน้าจอ
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.all(5), // 👈 ใช้แบบเดียวกับ Notification
       decoration: const BoxDecoration(
-        color: kPrimaryColor,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        color: Color(0xFFA1BC98),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          const Icon(Icons.search, color: kTextColor, size: 28),
-          const SizedBox(width: 10),
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF4A4E49)),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+
+          const SizedBox(width: 4),
+
           Text(
             "ค้นหาข้อมูลคะแนน",
             style: GoogleFonts.kanit(
-              color: kTextColor,
+              color: const Color(0xFF4A4E49),
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
@@ -164,7 +176,6 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
     );
   }
 
-  // พื้นที่เนื้อหาหลัก
   Widget _buildMainContent() {
     return Container(
       width: double.infinity,
@@ -192,7 +203,6 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
     );
   }
 
-  // ฟอร์มกรอกข้อมูลค้นหา
   Widget _buildSearchForm() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -233,7 +243,6 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
     );
   }
 
-  // ส่วนแสดงรายชื่อนิสิต
   Widget _buildStudentListContainer() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -250,7 +259,6 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
     );
   }
 
-  // หัวข้อรายวิชา
   Widget _buildSubjectHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,7 +308,6 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
     );
   }
 
-  // รายการนิสิตแต่ละแถว
   Widget _buildListView() {
     return ListView.separated(
       shrinkWrap: true,
@@ -356,7 +363,6 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
     );
   }
 
-  // 🔹 Dialog / Bottom Sheet: ส่วนแสดงผลข้อมูลคะแนนแบบ Overlay
   void _showScoreDialog(Map<String, String> student) {
     final studentScore = scores.firstWhere(
       (s) => s.studentId == student["studentId"],
@@ -484,7 +490,6 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
     );
   }
 
-  // 🔹 Animated Background: เลเยอร์เอฟเฟกต์ Confetti
   Widget _buildAnimatedBackground() {
     return Positioned.fill(
       child: IgnorePointer(
@@ -498,7 +503,6 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
     );
   }
 
-  // --- Widgets ย่อยอื่นๆ ---
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -609,10 +613,8 @@ class _SearchScoreLectureState extends State<SearchScoreLecture> {
   }
 
   Widget _buildScoreRow(List<Map<String, dynamic>> scores) {
-    // แยก 3 คะแนนแรก
     final normalScores = scores.where((e) => e["label"] != "รวม").toList();
 
-    // หาคะแนนรวม
     final totalScore = scores.firstWhere((e) => e["label"] == "รวม");
 
     return Column(

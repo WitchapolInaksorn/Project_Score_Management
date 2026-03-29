@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -62,7 +61,6 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
 
   int touchedIndex = -1;
 
-  // final List<double> scoreData = [10, 8, 7, 6, 5, 4, 3, 2];
   final Map<String, double> scoreData = {
     "A": 0,
     "B+": 0,
@@ -115,13 +113,10 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
       widget.sysSubjectNo!,
     );
 
-
     setState(() {
       scores = result;
       _setScore();
     });
-    
-
 
     if (scores.isNotEmpty) {
       final List<Map<String, String>> results = [];
@@ -142,121 +137,176 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
     }
   }
 
-    void _setScore() {
-      
-      final gradeRanges = [
-        (80, 100),
-        (75, 79),
-        (70, 74),
-        (65, 69),
-        (60, 64),
-        (55, 59),
-        (50, 54),
-        (0, 49),
-      ];
+  void _setScore() {
+    final gradeRanges = [
+      (80, 100),
+      (75, 79),
+      (70, 74),
+      (65, 69),
+      (60, 64),
+      (55, 59),
+      (50, 54),
+      (0, 49),
+    ];
 
-      scoreData.updateAll((key, value) => 0);
+    scoreData.updateAll((key, value) => 0);
 
-      if (selectedScoreType == "คะแนนทั้งหมด") {
-        totalScore = scores.fold(0, (sum, score) => sum + (score.accumulatedScore ?? 0) + (score.midtermScore ?? 0) + (score.finalScore ?? 0));
-        averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
-        maxScore = scores.fold(0, (max, score) {
-          final total = (score.accumulatedScore ?? 0) + (score.midtermScore ?? 0) + (score.finalScore ?? 0);
-          return total > max ? total : max;
-        });
-        minScore = scores.fold(double.infinity, (min, score) {
-          final total = (score.accumulatedScore ?? 0) + (score.midtermScore ?? 0) + (score.finalScore ?? 0);
-          return total < min ? total : min;
-        });
-        for (var score in scores) {
-          final total = (score.accumulatedScore ?? 0) + (score.midtermScore ?? 0) + (score.finalScore ?? 0);
-          for (int i = 0; i < gradeRanges.length; i++) {
-            final range = gradeRanges[i];
-            if (total >= range.$1 && total <= range.$2) {
-              scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
-              break;
-            }
+    if (selectedScoreType == "คะแนนทั้งหมด") {
+      totalScore = scores.fold(
+        0,
+        (sum, score) =>
+            sum +
+            (score.accumulatedScore ?? 0) +
+            (score.midtermScore ?? 0) +
+            (score.finalScore ?? 0),
+      );
+      averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
+      maxScore = scores.fold(0, (max, score) {
+        final total =
+            (score.accumulatedScore ?? 0) +
+            (score.midtermScore ?? 0) +
+            (score.finalScore ?? 0);
+        return total > max ? total : max;
+      });
+      minScore = scores.fold(double.infinity, (min, score) {
+        final total =
+            (score.accumulatedScore ?? 0) +
+            (score.midtermScore ?? 0) +
+            (score.finalScore ?? 0);
+        return total < min ? total : min;
+      });
+      for (var score in scores) {
+        final total =
+            (score.accumulatedScore ?? 0) +
+            (score.midtermScore ?? 0) +
+            (score.finalScore ?? 0);
+        for (int i = 0; i < gradeRanges.length; i++) {
+          final range = gradeRanges[i];
+          if (total >= range.$1 && total <= range.$2) {
+            scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
+            break;
           }
         }
-      } else if (selectedScoreType == "คะแนนเก็บ") {
-        totalScore = scores.fold(0, (sum, score) => sum + (score.accumulatedScore ?? 0));
-        averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
-        maxScore = scores.fold(0, (max, score) => (score.accumulatedScore ?? 0) > max ? (score.accumulatedScore ?? 0) : max);
-        minScore = scores.fold(double.infinity, (min, score) => (score.accumulatedScore ?? 0) < min ? (score.accumulatedScore ?? 0) : min);
-        for (var score in scores) {
-          final acc = score.accumulatedScore ?? 0;
-          for (int i = 0; i < gradeRanges.length; i++) {
-            if (acc >= gradeRanges[i].$1 && acc <= gradeRanges[i].$2) {
-              scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
-              break;
-            }
+      }
+    } else if (selectedScoreType == "คะแนนเก็บ") {
+      totalScore = scores.fold(
+        0,
+        (sum, score) => sum + (score.accumulatedScore ?? 0),
+      );
+      averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
+      maxScore = scores.fold(
+        0,
+        (max, score) =>
+            (score.accumulatedScore ?? 0) > max
+                ? (score.accumulatedScore ?? 0)
+                : max,
+      );
+      minScore = scores.fold(
+        double.infinity,
+        (min, score) =>
+            (score.accumulatedScore ?? 0) < min
+                ? (score.accumulatedScore ?? 0)
+                : min,
+      );
+      for (var score in scores) {
+        final acc = score.accumulatedScore ?? 0;
+        for (int i = 0; i < gradeRanges.length; i++) {
+          if (acc >= gradeRanges[i].$1 && acc <= gradeRanges[i].$2) {
+            scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
+            break;
           }
         }
-      } else if (selectedScoreType == "คะแนนกลางภาค") {
-        totalScore = scores.fold(0, (sum, score) => sum + (score.midtermScore ?? 0));
-        averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
-        maxScore = scores.fold(0, (max, score) => (score.midtermScore ?? 0) > max ? (score.midtermScore ?? 0) : max);
-        minScore = scores.fold(double.infinity, (min, score) => (score.midtermScore ?? 0) < min ? (score.midtermScore ?? 0) : min);
-        for (var score in scores) {
-          final mid = score.midtermScore ?? 0;
-          for (int i = 0; i < gradeRanges.length; i++) {
-            if (mid >= gradeRanges[i].$1 && mid <= gradeRanges[i].$2) {
-              scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
-              break;
-            }
+      }
+    } else if (selectedScoreType == "คะแนนกลางภาค") {
+      totalScore = scores.fold(
+        0,
+        (sum, score) => sum + (score.midtermScore ?? 0),
+      );
+      averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
+      maxScore = scores.fold(
+        0,
+        (max, score) =>
+            (score.midtermScore ?? 0) > max ? (score.midtermScore ?? 0) : max,
+      );
+      minScore = scores.fold(
+        double.infinity,
+        (min, score) =>
+            (score.midtermScore ?? 0) < min ? (score.midtermScore ?? 0) : min,
+      );
+      for (var score in scores) {
+        final mid = score.midtermScore ?? 0;
+        for (int i = 0; i < gradeRanges.length; i++) {
+          if (mid >= gradeRanges[i].$1 && mid <= gradeRanges[i].$2) {
+            scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
+            break;
           }
         }
-      } else if (selectedScoreType == "คะแนนปลายภาค") {
-        totalScore = scores.fold(0, (sum, score) => sum + (score.finalScore ?? 0));
-        averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
-        maxScore = scores.fold(0, (max, score) => (score.finalScore ?? 0) > max ? (score.finalScore ?? 0) : max);
-        minScore = scores.fold(double.infinity, (min, score) => (score.finalScore ?? 0) < min ? (score.finalScore ?? 0) : min);
-        for (var score in scores) {
-          final fin = score.finalScore ?? 0;
-          for (int i = 0; i < gradeRanges.length; i++) {
-            if (fin >= gradeRanges[i].$1 && fin <= gradeRanges[i].$2) {
-              scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
-              break;
-            }
+      }
+    } else if (selectedScoreType == "คะแนนปลายภาค") {
+      totalScore = scores.fold(
+        0,
+        (sum, score) => sum + (score.finalScore ?? 0),
+      );
+      averageScore = scores.isNotEmpty ? totalScore / scores.length : 0;
+      maxScore = scores.fold(
+        0,
+        (max, score) =>
+            (score.finalScore ?? 0) > max ? (score.finalScore ?? 0) : max,
+      );
+      minScore = scores.fold(
+        double.infinity,
+        (min, score) =>
+            (score.finalScore ?? 0) < min ? (score.finalScore ?? 0) : min,
+      );
+      for (var score in scores) {
+        final fin = score.finalScore ?? 0;
+        for (int i = 0; i < gradeRanges.length; i++) {
+          if (fin >= gradeRanges[i].$1 && fin <= gradeRanges[i].$2) {
+            scoreData[gradeKeys[i]] = (scoreData[gradeKeys[i]] ?? 0) + 1;
+            break;
           }
         }
       }
     }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgColor,
-      body: Column(
-        children: [
-          const SizedBox(height: 50),
+      body: SafeArea(
+        // ✅ เพิ่มตรงนี้
+        child: Column(
+          children: [
+            // ❌ ลบตัวนี้ออก
+            // const SizedBox(height: 50),
+            _buildHeader(),
 
-          _buildHeader(),
-
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                color: Color(0xFFE8EBD0),
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(10),
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE8EBD0),
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(10),
+                  ),
                 ),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _buildSubjectInfoCard(),
-                    const SizedBox(height: 12),
-                    _buildStatisticsGrid(),
-                    const SizedBox(height: 12),
-                    _buildPieChartCard(),
-                  ],
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildSubjectInfoCard(),
+                      const SizedBox(height: 12),
+                      _buildStatisticsGrid(),
+                      const SizedBox(height: 12),
+                      _buildPieChartCard(),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -265,19 +315,23 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.all(5),
       decoration: const BoxDecoration(
         color: Color(0xFFA1BC98),
         borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.assignment_rounded,
-            color: Color(0xFF4A4E49),
-            size: 28,
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF4A4E49)),
+            onPressed: () {
+              Navigator.pop(context);
+            },
           ),
-          const SizedBox(width: 10),
+
+          const SizedBox(width: 4),
+
           Text(
             "ภาพรวมคะแนนรายวิชา",
             style: GoogleFonts.kanit(
@@ -302,25 +356,45 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start, // ปรับให้ชิดบน
             children: [
+              // 1. ส่วนของชื่อวิชา - ใช้ Expanded เพื่อป้องกัน Overflow
               Expanded(
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "📚 ${widget.subjectName} (${widget.subjectId})",
+                      "📚 ${widget.subjectName}",
                       style: GoogleFonts.kanit(
                         color: textColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 8),
+                    Text(
+                      "(${widget.subjectId})",
+                      style: GoogleFonts.kanit(
+                        color: subTextColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              // 2. Dropdown - แยกออกมาให้ชัดเจน
+              _buildScoreDropdown(),
             ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 8),
+          Divider(
+            color: textColor.withOpacity(0.1),
+            thickness: 1,
+          ), // เพิ่มเส้นคั่นบางๆ
+          const SizedBox(height: 8),
           Text(
             "หมู่เรียน ${widget.section} | ${widget.semester} | ปีการศึกษา ${widget.academicYear}",
             style: GoogleFonts.kanit(
@@ -328,11 +402,6 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
               color: subTextColor,
               fontWeight: FontWeight.w500,
             ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [_buildScoreDropdown()],
           ),
         ],
       ),
@@ -405,7 +474,7 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
             Expanded(
               child: _buildStatCard(
                 "🔼️ คะแนนสูงสุด",
-                "${ maxScore == 0 ? "ไม่มีคะแนน" : maxScore.toStringAsFixed(2)}",
+                "${maxScore == 0 ? "ไม่มีคะแนน" : maxScore.toStringAsFixed(2)}",
                 "คะแนนสูงสุดของรายวิชานี้",
               ),
             ),
@@ -424,10 +493,8 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
   }
 
   Widget _buildPieChartCard() {
-    // รวมทั้งหมด
     final total = scoreData.values.fold(0.0, (a, b) => a + b);
 
-    // กันกรณีไม่มีข้อมูล
     if (total == 0) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -444,7 +511,6 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
       );
     }
 
-    // filter index ที่มีค่า > 0
     final visibleIndexes =
         List.generate(
           gradeKeys.length,
@@ -508,7 +574,6 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
                   ),
                 ),
 
-                // ===== center text =====
                 if (touchedIndex != -1 && touchedIndex < visibleIndexes.length)
                   Builder(
                     builder: (_) {
@@ -553,7 +618,6 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
 
           const SizedBox(height: 16),
 
-          // ===== Legend (แสดงเฉพาะที่มีข้อมูล) =====
           Wrap(
             spacing: 12,
             runSpacing: 8,
@@ -613,14 +677,14 @@ class _SummaryDashboardLectureState extends State<SummaryDashboardLecture> {
             ),
           ),
           const SizedBox(height: 15),
-        Text(
-          value,
-          style: GoogleFonts.kanit(
-            fontSize: value == "ไม่มีคะแนน" ? 20 : 34,
-            fontWeight: FontWeight.w500,
-            color: textColor,
+          Text(
+            value,
+            style: GoogleFonts.kanit(
+              fontSize: value == "ไม่มีคะแนน" ? 20 : 34,
+              fontWeight: FontWeight.w500,
+              color: textColor,
+            ),
           ),
-        ),
           const SizedBox(height: 15),
           Text(
             sub,

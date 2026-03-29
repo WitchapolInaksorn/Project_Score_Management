@@ -8,6 +8,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
+  // await FirebaseAuth.instance.signOut();
+
   runApp(const MyApp());
 }
 
@@ -31,14 +33,12 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // ✅ login อยู่
         if (snapshot.hasData) {
           final user = snapshot.data!;
           final email = user.email ?? "";
@@ -46,7 +46,6 @@ class AuthWrapper extends StatelessWidget {
           return MainNavigation(email: email);
         }
 
-        // ❌ ยังไม่ login
         return const LoginPage();
       },
     );

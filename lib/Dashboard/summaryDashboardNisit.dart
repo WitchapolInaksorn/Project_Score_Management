@@ -101,7 +101,7 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
 
     if (result.isEmpty) return;
 
-    final score = result.first; // ✅ เอาตัวแรก
+    final score = result.first;
 
     setState(() {
       searchResults[0]['scores'][0]['score'] =
@@ -111,7 +111,6 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
       searchResults[0]['scores'][2]['score'] =
           score.finalScore?.toString() ?? "0";
 
-      // ถ้าไม่มี totalScore ใน model → คำนวณเอง
       selfTotalScore =
           (score.midtermScore ?? 0) +
           (score.accumulatedScore ?? 0) +
@@ -161,7 +160,6 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
       return;
     }
 
-    // 🔥 function กลาง
     double getScore(SubjectScore s) {
       switch (selectedScoreType) {
         case "คะแนนทั้งหมด":
@@ -179,28 +177,22 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
       }
     }
 
-    // 🔹 total + avg
     totalScore = scores.fold(0, (sum, s) => sum + getScore(s));
     averageScore = totalScore / scores.length;
 
-    // 🔹 max
     maxScore = scores.map((s) => getScore(s)).reduce((a, b) => a > b ? a : b);
 
-    // 🔹 min
     minScore = scores.map((s) => getScore(s)).reduce((a, b) => a < b ? a : b);
 
-    // 🔥 SORT เพื่อหา rank
     final sorted = [...scores];
     sorted.sort((a, b) => getScore(b).compareTo(getScore(a)));
 
-    // 🔹 หาคะแนนของตัวเอง
     final myScoreObj = sorted.firstWhere(
       (s) => s.studentId == widget.studentId,
     );
 
     final myScore = getScore(myScoreObj);
 
-    // 🔹 หา rank
     rank = sorted.indexWhere((s) => getScore(s) == myScore) + 1;
     selfTotalScore = myScore;
   }
@@ -247,19 +239,23 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.all(5),
       decoration: const BoxDecoration(
         color: Color(0xFFA1BC98),
         borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.assignment_rounded,
-            color: Color(0xFF4A4E49),
-            size: 28,
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF4A4E49)),
+            onPressed: () {
+              Navigator.pop(context);
+            },
           ),
-          const SizedBox(width: 10),
+
+          const SizedBox(width: 4),
+
           Text(
             "ภาพรวมคะแนนรายวิชา",
             style: GoogleFonts.kanit(
@@ -284,37 +280,52 @@ class _SummaryDashboardNisitState extends State<SummaryDashboardNisit> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start, // ปรับให้ชิดบน
             children: [
+              // 1. ส่วนของชื่อวิชา - ใช้ Expanded เพื่อป้องกัน Overflow
               Expanded(
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "📚 ${widget.subjectName ?? ""} (${widget.subjectId ?? ""})",
+                      "📚 ${widget.subjectName}",
                       style: GoogleFonts.kanit(
                         color: textColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 8),
+                    Text(
+                      "(${widget.subjectId})",
+                      style: GoogleFonts.kanit(
+                        color: subTextColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              // 2. Dropdown - แยกออกมาให้ชัดเจน
+              _buildScoreDropdown(),
             ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 8),
+          Divider(
+            color: textColor.withOpacity(0.1),
+            thickness: 1,
+          ), // เพิ่มเส้นคั่นบางๆ
+          const SizedBox(height: 8),
           Text(
-            "หมู่เรียน ${widget.section ?? ""} | ${widget.semester ?? ""} | ปีการศึกษา ${widget.year ?? ""}",
+            "หมู่เรียน ${widget.section} | ${widget.semester} | ปีการศึกษา ${widget.year}",
             style: GoogleFonts.kanit(
               fontSize: 12,
               color: subTextColor,
               fontWeight: FontWeight.w500,
             ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [_buildScoreDropdown()],
           ),
         ],
       ),

@@ -11,6 +11,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:score_management/apiservice/apiservice.dart';
 import 'package:score_management/apiservice/model/studentinfo.dart';
 import 'package:score_management/apiservice/model/studentsubjectscore.dart';
+import 'package:score_management/signalr_service/signalr_service.dart';
 
 class DashboardSearchNisit extends StatefulWidget {
   const DashboardSearchNisit({super.key});
@@ -30,6 +31,9 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
   List<StudentSubjectScore>? Subject;
   StudentSubjectScore? selectedSubject;
   bool isLoading = false;
+
+  SignalRService? signalRService;
+  bool hasNewNotification = false;
 
   int? yearValue;
   String? semesterValue;
@@ -64,6 +68,7 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
     yearController.dispose();
     semesterController.dispose();
     sectionController.dispose();
+    signalRService?.disconnect();
     super.dispose();
   }
 
@@ -81,9 +86,25 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
       studentInfo = result;
     });
 
+    setupSignalR();
+
     if (studentInfo != null) {
       await loadStudentSubject(studentInfo!.studentId!);
     }
+  }
+
+  void setupSignalR() async {
+    final service = SignalRService();
+
+    await service.connect(studentId: studentInfo?.studentId ?? "");
+
+    service.addListener((data) {
+      if (!mounted) return;
+
+      setState(() {
+        hasNewNotification = true;
+      });
+    });
   }
 
   Future<void> loadStudentSubject(String studentId) async {
@@ -197,9 +218,30 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
           children: [
             CircleAvatar(
               backgroundColor: const Color(0xFFE7ECD9),
-              child: IconButton(
-                icon: const Icon(Icons.notifications, color: Color(0xFF5F705C)),
-                onPressed: _goToNotification,
+              child: Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.notifications,
+                      color: Color(0xFF5F705C),
+                    ),
+                    onPressed: _goToNotification,
+                  ),
+
+                  if (hasNewNotification)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(width: 10),
@@ -319,7 +361,6 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
       child: DropdownSearch<StudentSubjectScore>(
         selectedItem: selectedSubject,
 
-        // ✅ ใช้ object ทั้งก้อน (ไม่ต้อง map เป็น String)
         items: Subject?.where((s) => s.activeStatus == "active").toList() ?? [],
 
         dropdownDecoratorProps: DropDownDecoratorProps(
@@ -346,10 +387,8 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
           ),
         ),
 
-        // ✅ แสดงผลใน dropdown
         itemAsString: (s) => "${s.subjectId} ${s.subjectName}",
 
-        // ✅ เวลาเลือก
         onChanged: (value) {
           setState(() {
             selectedSubject = value;
@@ -596,6 +635,9 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
             (_) => Notificationpage(studentId: studentInfo?.studentId ?? ""),
       ),
     );
+    setState(() {
+      hasNewNotification = false;
+    });
   }
 
   void _onSearchPressed() async {
@@ -671,10 +713,6 @@ class _DashboardSearchNisitState extends State<DashboardSearchNisit> {
         ),
       );
     }
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (_) => const SummaryDashboardNisit()),
-    // );
   }
 
   void _onResetPressed() {

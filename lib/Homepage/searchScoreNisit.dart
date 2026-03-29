@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:score_management/apiservice/apiservice.dart';
 import 'package:score_management/apiservice/model/SubjectScoreRequest.dart';
 
@@ -72,7 +71,7 @@ class _SearchScoreNisitState extends State<SearchScoreNisit> {
 
     if (result.isEmpty) return;
 
-    final score = result.first; // ✅ เอาตัวแรก
+    final score = result.first;
 
     setState(() {
       searchResults[0]['scores'][0]['score'] =
@@ -82,7 +81,6 @@ class _SearchScoreNisitState extends State<SearchScoreNisit> {
       searchResults[0]['scores'][2]['score'] =
           score.finalScore?.toString() ?? "0";
 
-      // ถ้าไม่มี totalScore ใน model → คำนวณเอง
       final total =
           (score.midtermScore ?? 0) +
           (score.accumulatedScore ?? 0) +
@@ -110,15 +108,23 @@ class _SearchScoreNisitState extends State<SearchScoreNisit> {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.all(5), // 👈 ใช้แบบเดียวกับ Notification
       decoration: const BoxDecoration(
         color: Color(0xFFA1BC98),
         borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          const Icon(Icons.search, color: Color(0xFF4A4E49), size: 28),
-          const SizedBox(width: 10),
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF4A4E49)),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+
+          const SizedBox(width: 4),
+
           Text(
             "ค้นหาข้อมูลคะแนน",
             style: GoogleFonts.kanit(
@@ -164,7 +170,6 @@ class _SearchScoreNisitState extends State<SearchScoreNisit> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon Books
               Container(
                 margin: const EdgeInsets.only(top: 2, right: 8),
                 child: const Icon(
@@ -173,11 +178,16 @@ class _SearchScoreNisitState extends State<SearchScoreNisit> {
                   size: 20,
                 ),
               ),
+              // ใช้ Expanded เพื่อให้ Column มีพื้นที่จำกัด ไม่ดันจนหลุดขอบ
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    // ใช้ Wrap แทน Row เพื่อให้รหัสวิชาตัดขึ้นบรรทัดใหม่ได้ถ้าชื่อวิชายาวเกิน
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8, // ระยะห่างแนวนอน
+                      runSpacing: 4, // ระยะห่างแนวตั้งกรณีตัดบรรทัด
                       children: [
                         Text(
                           data['subject'],
@@ -187,7 +197,6 @@ class _SearchScoreNisitState extends State<SearchScoreNisit> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -222,11 +231,9 @@ class _SearchScoreNisitState extends State<SearchScoreNisit> {
               ),
             ],
           ),
-
           const SizedBox(height: 10),
           const Divider(color: Color(0xFFA1BC98), thickness: 1),
           const SizedBox(height: 10),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children:

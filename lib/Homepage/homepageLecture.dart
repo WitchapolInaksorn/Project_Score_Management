@@ -309,7 +309,7 @@ class _HomepageLectureState extends State<HomepageLecture> {
         ),
 
         popupProps: PopupProps.menu(
-          showSearchBox: true, // 🔥 เปิด search
+          showSearchBox: true,
           searchFieldProps: TextFieldProps(
             decoration: InputDecoration(hintText: "ค้นหารายวิชา..."),
             keyboardType: TextInputType.text,
@@ -490,7 +490,6 @@ class _HomepageLectureState extends State<HomepageLecture> {
       ),
     );
   }
-
 
   Widget _buildActionButtons() {
     return Row(

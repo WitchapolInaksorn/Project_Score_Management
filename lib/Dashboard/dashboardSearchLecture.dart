@@ -312,7 +312,7 @@ class _DashboardSearchLectureState extends State<DashboardSearchLecture> {
         ),
 
         popupProps: PopupProps.menu(
-          showSearchBox: true, // 🔥 เปิด search
+          showSearchBox: true,
           searchFieldProps: TextFieldProps(
             decoration: InputDecoration(hintText: "ค้นหารายวิชา..."),
             keyboardType: TextInputType.text,
@@ -599,7 +599,7 @@ class _DashboardSearchLectureState extends State<DashboardSearchLecture> {
       section: sectionValue!,
     );
 
-    if (!mounted) return; // 🔥 สำคัญที่สุด
+    if (!mounted) return;
 
     if (sysSubjectNo == null) {
       AwesomeDialog(

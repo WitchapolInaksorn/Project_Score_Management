@@ -11,6 +11,7 @@ import 'package:score_management/Authentication/loginPage.dart';
 import 'package:score_management/apiservice/model/studentinfo.dart';
 import 'package:score_management/apiservice/apiservice.dart';
 import 'package:score_management/apiservice/model/studentsubjectscore.dart';
+import 'package:score_management/signalr_service/signalr_service.dart';
 
 class HomepageNisit extends StatefulWidget {
   final String email;
@@ -25,6 +26,9 @@ class _HomepageNisitState extends State<HomepageNisit> {
   List<StudentSubjectScore>? Subject;
   StudentSubjectScore? selectedSubject;
   bool isLoading = false;
+
+  SignalRService? signalRService;
+  bool hasNewNotification = false;
 
   // ================= COLORS =================
   static const primary = Color(0xFFA1BC98);
@@ -83,7 +87,23 @@ class _HomepageNisitState extends State<HomepageNisit> {
       isLoading = false;
     });
 
+    setupSignalR();
+
     loadStudentSubject(studentInfo?.studentId ?? "");
+  }
+
+  void setupSignalR() async {
+    final service = SignalRService();
+
+    await service.connect(studentId: studentInfo?.studentId ?? "");
+
+    service.addListener((data) {
+      if (!mounted) return;
+
+      setState(() {
+        hasNewNotification = true;
+      });
+    });
   }
 
   Future<void> loadStudentSubject(String studentId) async {
@@ -93,7 +113,7 @@ class _HomepageNisitState extends State<HomepageNisit> {
 
     final result = await StudentService.getSubjectScore(studentId);
 
-    if (!mounted) return; // 🔥 ต้องมีตรงนี้
+    if (!mounted) return;
 
     setState(() {
       Subject = result;
@@ -123,7 +143,7 @@ class _HomepageNisitState extends State<HomepageNisit> {
         await FirebaseAuth.instance.signOut();
         await GoogleSignIn().signOut();
 
-        if (!mounted) return; // 🔥 กัน context ตาย
+        if (!mounted) return;
 
         Navigator.pushAndRemoveUntil(
           context,
@@ -202,9 +222,30 @@ class _HomepageNisitState extends State<HomepageNisit> {
           children: [
             CircleAvatar(
               backgroundColor: const Color(0xFFE7ECD9),
-              child: IconButton(
-                icon: const Icon(Icons.notifications, color: Color(0xFF5F705C)),
-                onPressed: _goToNotification,
+              child: Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.notifications,
+                      color: Color(0xFF5F705C),
+                    ),
+                    onPressed: _goToNotification,
+                  ),
+
+                  if (hasNewNotification)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(width: 10),
@@ -324,7 +365,6 @@ class _HomepageNisitState extends State<HomepageNisit> {
       child: DropdownSearch<StudentSubjectScore>(
         selectedItem: selectedSubject,
 
-        // ✅ ใช้ object ทั้งก้อน (ไม่ต้อง map เป็น String)
         items: Subject?.where((s) => s.activeStatus == "active").toList() ?? [],
 
         dropdownDecoratorProps: DropDownDecoratorProps(
@@ -351,10 +391,8 @@ class _HomepageNisitState extends State<HomepageNisit> {
           ),
         ),
 
-        // ✅ แสดงผลใน dropdown
         itemAsString: (s) => "${s.subjectId} ${s.subjectName}",
 
-        // ✅ เวลาเลือก
         onChanged: (value) {
           setState(() {
             selectedSubject = value;
@@ -556,14 +594,18 @@ class _HomepageNisitState extends State<HomepageNisit> {
     );
   }
 
-  void _goToNotification() {
-    Navigator.push(
+  void _goToNotification() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder:
             (_) => Notificationpage(studentId: studentInfo?.studentId ?? ""),
       ),
     );
+
+    setState(() {
+      hasNewNotification = false;
+    });
   }
 
   void _onSearchPressed() async {
